@@ -1,0 +1,16 @@
+.p-multiselect-token {
+    max-width: 120px;
+    white-space: normal;
+}
+
+.p-multiselect .p-multiselect-token {
+    margin-bottom: 4px;
+}
+
+.p-multiselect .p-multiselect-token-container {
+    display: flex;
+    flex-wrap: wrap;
+    max-height: 80px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
