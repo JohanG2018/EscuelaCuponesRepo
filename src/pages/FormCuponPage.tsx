@@ -5,6 +5,10 @@ import { InputTextarea } from "primereact/inputtextarea";
 import { Calendar } from "primereact/calendar";
 import { Checkbox } from "primereact/checkbox";
 import { MultiSelect } from "primereact/multiselect";
+import Dropdown from "../components/MultiselectComponent";
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+        
 
 const FormCuponPage: React.FC = () => {
   const [titulo, setTitulo] = useState("");
@@ -14,13 +18,48 @@ const FormCuponPage: React.FC = () => {
   const [fechaFin, setFechaFin] = useState<Date | null>(null);
   const [tipoAplicacion, setTipoAplicacion] = useState<string[]>([]);
   const [selectedLocales, setSelectedLocales] = useState<any[]>([]);
+  const [selectedCategorias, setSelectedCategorias] = useState([]);
+  const [selectedSubcategorias, setSelectedSubcategorias] = useState([]);
+  const [selectedProductos, setSelectedProductos] = useState([]);
 
   const locales = [
     { name: "Moderna" },
-    { name: "Rome" },
-    { name: "London" },
-    { name: "Istanbul" },
-    { name: "Paris" },
+    { name: "Alborada" },
+    { name: "Av. Francisco de Orellana" },
+    { name: "Gómez Rendón" },
+    { name: "Piazza Samborondón" },
+  ];
+
+  const categorias = [
+    { name: "Abarrotes" },
+    { name: "Cárnicos" },
+    { name: "Congelados" },
+    { name: "Mascotas" },
+    { name: "Panadería" },
+  ]
+
+  const subcategorias = [
+    { name: "Bebidas" },
+    { name: "Lácteos" },
+    { name: "Frutas y Verduras" },
+    { name: "Cereales" },
+    { name: "Snacks" },
+  ]
+
+  const provedores = [
+    { name: "Provedor A" },
+    { name: "Provedor B" },
+    { name: "Provedor C" },
+    { name: "Provedor D" },
+    { name: "Provedor E" },
+  ]
+
+  const productos = [
+    { name: "Pollo Horneado" },
+    { name: "Cerveza Artesanal" },
+    { name: "Pan Integral" },
+    { name: "Galletas de Avena" },
+    { name: "Leche Deslactosada" },
   ];
 
   const onTipoAplicacionChange = (e: { value: string; checked: boolean }) => {
@@ -51,7 +90,7 @@ const FormCuponPage: React.FC = () => {
         </div>
 
         {/* Estado */}
-        <div className="flex flex-col gap-2">
+        {/* <div className="flex flex-col gap-2">
           <label htmlFor="estado" className="font-semibold invisible">
             Estado
           </label>
@@ -64,7 +103,7 @@ const FormCuponPage: React.FC = () => {
             onChange={(e) => setEstadoActivo(e.value)}
             className="w-36"
           />
-        </div>
+        </div> */}
 
         {/* Descripción */}
         <div className="md:col-span-2 flex flex-col gap-2">
@@ -151,6 +190,50 @@ const FormCuponPage: React.FC = () => {
             maxSelectedLabels={20}
           />
         </div>
+        <label htmlFor="Productos participantes" className="font-semibold">
+          Productos participantes <span className="text-red-500">*</span>
+        </label>
+        {/* Dropdown para seleccionar categorías, subcategorías, etc. */}
+        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6">
+
+          <div>
+            <label htmlFor="categoria" className="font-normal">
+              Categoría <span className="text-red-500">*</span>
+            </label>
+            <Dropdown
+              options={categorias}
+              value={selectedCategorias}
+              onChange={(e) => setSelectedCategorias(e.value)}
+              placeholder="Seleccione una o varias categorías"
+              name="Categorías"
+            />
+          </div>
+          <div>
+            <label htmlFor="subcategoria" className="font-normal">
+              Subcategoría <span className="text-red-500">*</span>
+            </label>
+            <Dropdown
+              options={subcategorias}
+              value={selectedSubcategorias}
+              onChange={(e) => setSelectedSubcategorias(e.value)}
+              placeholder="Seleccione una o varias subcategorías"
+              name="Subcategorías"
+            />
+          </div>
+          <div>
+            <label htmlFor="producto" className="font-normal">
+              Producto <span className="text-red-500">*</span>
+            </label>
+            <Dropdown
+              options={productos}
+              value={selectedProductos}
+              onChange={(e) => setSelectedProductos(e.value)}
+              placeholder="Seleccione una o varios productos"
+              name="Productos"
+            />
+          </div>
+        </div>
+        
       </div>
     </div>
   );
