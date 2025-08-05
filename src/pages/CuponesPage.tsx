@@ -47,7 +47,9 @@ const CuponesPage: React.FC = () => {
         <h2 className="text-xl font-semibold">Listado de Cupones</h2>
         <Button label="Crear cupón" icon="pi pi-plus" className="p-button-sm" onClick={onCrear} />
       </div>
-      <CuponesTable cupones={cupones} onEdit={onEditar} onDelete={onEliminar} />
+      <div className="m-20">
+         <CuponesTable cupones={cupones} onEdit={onEditar} onDelete={onEliminar} />
+      </div>
     </div>
         </>
     )
