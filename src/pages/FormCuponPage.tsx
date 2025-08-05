@@ -8,7 +8,10 @@ import { MultiSelect } from "primereact/multiselect";
 import Dropdown from "../components/MultiselectComponent";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-        
+import { InputNumber } from "primereact/inputnumber";
+import { RadioButton } from 'primereact/radiobutton';
+import { FileUpload } from 'primereact/fileupload';
+      
 
 const FormCuponPage: React.FC = () => {
   const [titulo, setTitulo] = useState("");
@@ -21,6 +24,8 @@ const FormCuponPage: React.FC = () => {
   const [selectedCategorias, setSelectedCategorias] = useState([]);
   const [selectedSubcategorias, setSelectedSubcategorias] = useState([]);
   const [selectedProductos, setSelectedProductos] = useState([]);
+  const [value3, setValue3] = useState(25);
+  const [formatoLogo, setFormatoLogo] = useState<string>('formato1');
 
   const locales = [
     { name: "Moderna" },
@@ -61,7 +66,12 @@ const FormCuponPage: React.FC = () => {
     { name: "Galletas de Avena" },
     { name: "Leche Deslactosada" },
   ];
-
+  const formatos = [
+  { id: 'formato1', label: 'Formato 1' },
+  { id: 'formato2', label: 'Formato 2' },
+  { id: 'formato3', label: 'Formato 3' },
+  { id: 'sinformato', label: 'Sin Formato' },
+];
   const onTipoAplicacionChange = (e: { value: string; checked: boolean }) => {
     const selected = [...tipoAplicacion];
     if (e.checked) selected.push(e.value);
@@ -86,6 +96,7 @@ const FormCuponPage: React.FC = () => {
             value={titulo}
             onChange={(e) => setTitulo(e.target.value)}
             placeholder="Ingrese el título"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -117,6 +128,8 @@ const FormCuponPage: React.FC = () => {
             rows={4}
             autoResize
             placeholder="Ingrese la descripción"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+
           />
         </div>
 
@@ -131,6 +144,7 @@ const FormCuponPage: React.FC = () => {
             onChange={(e) => setFechaInicio(e.value as Date)}
             showIcon
             placeholder="Seleccione una fecha"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div className="flex flex-col gap-2">
@@ -143,6 +157,7 @@ const FormCuponPage: React.FC = () => {
             onChange={(e) => setFechaFin(e.value as Date)}
             showIcon
             placeholder="Seleccione una fecha"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -186,7 +201,7 @@ const FormCuponPage: React.FC = () => {
             optionLabel="name"
             placeholder="Seleccione uno o varios locales"
             filter
-            className="w-full md:w-80"
+            className="w-full  border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             maxSelectedLabels={20}
           />
         </div>
@@ -232,9 +247,73 @@ const FormCuponPage: React.FC = () => {
               name="Productos"
             />
           </div>
+          {/*Productos excluidos*/ }
+          <div >
+            <label htmlFor="producto" className="font-normal">
+              Productos excluidos 
+            </label>
+            <Dropdown
+              options={productos}
+              value={selectedProductos}
+              onChange={(e) => setSelectedProductos(e.value)}
+              placeholder="Seleccione una o varios productos excluidos"
+              name="Productos"
+            />
+          </div>
+          
         </div>
-        
+        <div className="flex ">
+            <label htmlFor="">
+                Combinación de minimo de compras y productos/marcas
+            </label>
+            <Checkbox
+                className="flex items-center gap-2"
+                inputId="mecanica"
+                value="Por mecánica"
+                onChange={onTipoAplicacionChange}
+                checked={tipoAplicacion.includes("Por mecánica")}
+              />
+              <label htmlFor="mecanica">Combinada</label>
+          </div>
+    
+            <div className="flex-col gap-2">
+                <label htmlFor="minmax-buttons" className="font-bold block mb-2">Cantidad de productos</label>
+                <InputNumber inputId="minmax-buttons" value={value3}  mode="decimal" showButtons min={0} max={100} />
+            </div> 
+            {/* Tipo de Logo */}
+<div className="md:col-span-2 flex flex-col gap-4 mt-6">
+  <label className="font-semibold">Tipo de Logo</label>
+  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+    {formatos.map((formato) => (
+      <div
+        key={formato.id}
+        className={`border rounded-md p-3 text-center cursor-pointer transition-all duration-200
+          ${formatoLogo === formato.id ? 'ring-2 ring-blue-500' : 'hover:shadow-md'}`}
+        onClick={() => setFormatoLogo(formato.id)}
+      >
+        <img
+          src="/logo-placeholder.png" // <-- Usa tu imagen real aquí o temporalmente una genérica
+          alt={formato.label}
+          className="w-full h-24 object-contain mb-2"
+        />
+        <RadioButton
+          inputId={formato.id}
+          name="formatoLogo"
+          value={formato.id}
+          onChange={(e) => setFormatoLogo(e.value)}
+          checked={formatoLogo === formato.id}
+        />
+        <label htmlFor={formato.id} className="ml-2">{formato.label}</label>
       </div>
+    ))}
+  </div>
+   <div className="card">
+            <FileUpload name="demo[]" url={'/api/upload'} multiple accept="image/*" maxFileSize={1000000} emptyTemplate={<p className="m-0">Drag and drop files to here to upload.</p>} />
+        </div>
+</div>
+
+      </div>
+      
     </div>
   );
 };

@@ -3,6 +3,8 @@ import React from "react";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Button } from "primereact/button";
+import { InputText } from "primereact/inputtext"; // asegúrate de tener esto
+
 
 export interface Cupon {
     id: number;
@@ -16,19 +18,19 @@ export interface Cupon {
 interface Props {
     cupones: Cupon[];
     onEdit: (cupon: Cupon) => void;
-    onDelete: (cupon: Cupon) => void;
+    onStatus: (cupon: Cupon) => boolean | void;
 }
-const CuponesTable: React.FC<Props> = ({ cupones, onEdit, onDelete }) => {
+const CuponesTable: React.FC<Props> = ({ cupones, onEdit, onStatus }) => {
     const actionTemplate = (rowData: Cupon) => {
         return (
             <div className="flex gap-2">
                 <Button icon="pi pi-pencil" className="p-button-sm p-button-text" onClick={() => onEdit(rowData)}></Button>
-                <Button icon="pi pi-lock" className="p-button-sm p-button-text" onClick={() => onDelete(rowData)}></Button>
-            
+                <Button icon="pi pi-lock" className="p-button-sm p-button-text" onClick={() => onStatus(rowData)}></Button>
             </div>
         );
     }
     return (
+            <>    
             <DataTable value={cupones} paginator rows={5} rowsPerPageOptions={[5,10,20]} responsiveLayout="scroll" className="">
                 <Column field="index"  header="#" />
                 <Column  field="titulo" header="Titulo"  />
@@ -37,8 +39,10 @@ const CuponesTable: React.FC<Props> = ({ cupones, onEdit, onDelete }) => {
                 <Column field="fechaFin" header="Fin" />
                 <Column field="estado" header="Estado" />
                 <Column header="Acciones" body={actionTemplate} style={{ width: '150px' }} />
-            </DataTable>          
-        
+            </DataTable>
+            </>    
+                      
+
     )
 }
 

@@ -48,7 +48,7 @@ const CuponesPage: React.FC = () => {
           <Button label="Crear cupón" icon="pi pi-plus" raised  className="p-2" onClick={onCrear} />
         </div>
         <div className="m-5">
-          <CuponesTable cupones={cupones} onEdit={onEditar} onDelete={onEliminar} />
+          <CuponesTable cupones={cupones} onEdit={onEditar} onStatus={onEliminar} />
         </div>
       </div>
     </>
