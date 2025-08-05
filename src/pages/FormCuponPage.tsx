@@ -31,7 +31,7 @@ const FormCuponPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className=" mx-auto p-6">
       <h1 className="text-center text-2xl font-bold mb-6  ">
         Administrador de Promociones - Cupones
       </h1>
