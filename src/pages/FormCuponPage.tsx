@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { InputText } from "primereact/inputtext";
-import { ToggleButton } from "primereact/togglebutton";
+// import { ToggleButton } from "primereact/togglebutton";
 import { InputTextarea } from "primereact/inputtextarea";
 import { Calendar } from "primereact/calendar";
 import { Checkbox } from "primereact/checkbox";
@@ -8,7 +8,10 @@ import { MultiSelect } from "primereact/multiselect";
 import Dropdown from "../components/MultiselectComponent";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-        
+import { FileUpload } from "primereact/fileupload";
+import { FloatLabel } from "primereact/floatlabel";
+import { Button } from "primereact/button";
+
 
 const FormCuponPage: React.FC = () => {
   const [titulo, setTitulo] = useState("");
@@ -21,6 +24,8 @@ const FormCuponPage: React.FC = () => {
   const [selectedCategorias, setSelectedCategorias] = useState([]);
   const [selectedSubcategorias, setSelectedSubcategorias] = useState([]);
   const [selectedProductos, setSelectedProductos] = useState([]);
+  const [legal, setLegal] = useState("");
+  const [tipoAmbiente, setTipoAmbiente] = useState<string[]>([]);
 
   const locales = [
     { name: "Moderna" },
@@ -63,19 +68,28 @@ const FormCuponPage: React.FC = () => {
   ];
 
   const onTipoAplicacionChange = (e: { value: string; checked: boolean }) => {
-    const selected = [...tipoAplicacion];
-    if (e.checked) selected.push(e.value);
-    else selected.splice(selected.indexOf(e.value), 1);
-    setTipoAplicacion(selected);
+    if (e.checked) {
+      setTipoAplicacion([e.value]);
+    } else {
+      setTipoAplicacion([]);
+    }
+  };
+
+  const onTipoAmbienteChange = (e: { value: string; checked: boolean }) => {
+    if (e.checked) {
+      setTipoAmbiente([e.value]);
+    } else {
+      setTipoAmbiente([]);
+    }
   };
 
   return (
-    <div className=" mx-auto p-6">
-      <h1 className="text-center text-2xl font-bold mb-6  ">
+    <div className=" mx-auto p-6 ">
+      <h1 className="text-center text-2xl font-bold mb-6 bg-[#9b0e0e] text-white p-4">
         Administrador de Promociones - Cupones
       </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         {/* Título */}
         <div className="flex flex-col gap-2">
           <label htmlFor="titulo" className="font-semibold">
@@ -194,8 +208,7 @@ const FormCuponPage: React.FC = () => {
           Productos participantes <span className="text-red-500">*</span>
         </label>
         {/* Dropdown para seleccionar categorías, subcategorías, etc. */}
-        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6">
-
+        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label htmlFor="categoria" className="font-normal">
               Categoría <span className="text-red-500">*</span>
@@ -205,7 +218,7 @@ const FormCuponPage: React.FC = () => {
               value={selectedCategorias}
               onChange={(e) => setSelectedCategorias(e.value)}
               placeholder="Seleccione una o varias categorías"
-              name="Categorías"
+              name="categorias"
             />
           </div>
           <div>
@@ -217,7 +230,7 @@ const FormCuponPage: React.FC = () => {
               value={selectedSubcategorias}
               onChange={(e) => setSelectedSubcategorias(e.value)}
               placeholder="Seleccione una o varias subcategorías"
-              name="Subcategorías"
+              name="subcategorias"
             />
           </div>
           <div>
@@ -229,14 +242,109 @@ const FormCuponPage: React.FC = () => {
               value={selectedProductos}
               onChange={(e) => setSelectedProductos(e.value)}
               placeholder="Seleccione una o varios productos"
-              name="Productos"
+              name="productos"
             />
           </div>
         </div>
-        
+        <label htmlFor="combinaciones" className="font-semibold">
+          Tabla combinaciones
+          <span></span>
+        </label>
+        <div className="card col-span-2 ">
+          <DataTable value={productos} stripedRows paginator rows={3} rowsPerPageOptions={[5, 10, 25, 50]} tableStyle={{ minWidth: '75rem' }}>
+            <Column field="name" header="Producto" style={{ width: '50%' }}></Column>
+            <Column field="tipo" header="Tipo" style={{ width: '25%' }}></Column>
+            <Column field="valor" header="Valor" style={{ width: '10%' }}></Column>
+            <Column field="cantidad" header="Cantidad" style={{ width: '10%' }}></Column>
+          </DataTable>
+        </div>
+        {/* <FileUpload name="demo[]" url={'/api/upload'} multiple accept="image/*" maxFileSize={1000000} emptyTemplate={<p className="m-0">Sube la imagen del logo.</p>} /> */}
+
+        {/* Legal */}
+        <div className="md:col-span-2 flex flex-col gap-2">
+          <label htmlFor="legal" className="font-semibold">
+            Legal <span className="text-red-500">*</span>
+          </label>
+          <InputTextarea
+            id="legal"
+            value={legal}
+            onChange={(e) => setLegal(e.target.value)}
+            placeholder="Ingrese el texto legal"
+            rows={2}
+            autoResize
+          />
+        </div>
+        <div >
+          <p id="disclamer" className="text-sm text-gray-500 w-max">
+            Nota: En el caso de no escoger un formato, el cupón se mostrará sin logo, pero con título información y legal.
+          </p>
+        </div>
+        {/* Tipo de Ambiente */}
+        <div className="md:col-span-2 flex flex-col gap-2">
+          <label htmlFor="tipoAmbiente" className="font-semibold">
+            Tipo de Ambiente <span className="text-red-500">*</span>
+          </label>
+          <div className="flex gap-6">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                inputId="pruebas"
+                value="Pruebas"
+                onChange={onTipoAmbienteChange}
+                checked={tipoAmbiente.includes("Pruebas")}
+              />
+              <label htmlFor="pruebas">Pruebas</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                inputId="produccion"
+                value="Produccion"
+                onChange={onTipoAmbienteChange}
+                checked={tipoAmbiente.includes("Produccion")}
+              />
+              <label htmlFor="produccion">Producción</label>
+            </div>
+          </div>
+        </div>
+        {/* Guardar Formulario */}
+        <div className="md:col-span-2 flex justify-center">
+          <Button label="Guardar" icon="pi pi-check" className="p-button-success" />
+        </div>
       </div>
     </div>
   );
 };
 
 export default FormCuponPage;
+{/* <div className="md:col-span-2 flex justify-end">
+          <Button
+            label="Guardar"
+            icon="pi pi-check"
+            className="p-button-success"
+            onClick={async () => {
+              const payload = {
+          titulo,
+          descripcion,
+          estadoActivo,
+          fechaInicio,
+          fechaFin,
+          tipoAplicacion,
+          locales: selectedLocales,
+          categorias: selectedCategorias,
+          subcategorias: selectedSubcategorias,
+          productos: selectedProductos,
+          legal,
+          tipoAmbiente,
+              };
+              try {
+          const response = await fetch('/api/cupones', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (!response.ok) throw new Error('Error al guardar el cupón');
+          alert('Cupón guardado correctamente');
+              } catch (error) {
+          alert('Hubo un error al guardar el cupón');
+              }
+            }}
+          /> */}
