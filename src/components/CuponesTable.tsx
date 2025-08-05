@@ -23,13 +23,14 @@ const CuponesTable: React.FC<Props> = ({ cupones, onEdit, onDelete }) => {
         return (
             <div className="flex gap-2">
                 <Button icon="pi pi-pencil" className="p-button-sm p-button-text" onClick={() => onEdit(rowData)}></Button>
-                <Button icon="pi pi-trash" className="p-button-sm p-button-text" onClick={() => onDelete(rowData)}></Button>
+                <Button icon="pi pi-lock" className="p-button-sm p-button-text" onClick={() => onDelete(rowData)}></Button>
             </div>
         );
     }
     return (
-        <>
-            <DataTable value={cupones} paginator rows={5} responsiveLayout="scroll" className="mt-2">
+        
+            <div className="px-5">
+                 <DataTable value={cupones} paginator rows={5} responsiveLayout="scroll" className="mt-2">
                 <Column field="index"  header="#" />
                 <Column  field="titulo" header="Titulo"  />
                 <Column field="estado" header="Estado" />
@@ -39,7 +40,9 @@ const CuponesTable: React.FC<Props> = ({ cupones, onEdit, onDelete }) => {
                 <Column header="Acciones" body={actionTemplate} style={{ width: '150px' }} />
             </DataTable>
 
-        </>
+            </div>
+           
+        
     )
 }
 
