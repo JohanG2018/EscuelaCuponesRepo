@@ -23,7 +23,42 @@ const CuponesPage: React.FC = () => {
       fechaInicio: "2023-11-01",
       fechaFin: "2023-11-30",
       tipoAplicacion: "por mecanica"
-    }
+    },
+    {
+      id: 2,
+      index: 3,
+      titulo: "Compra 1 y lleva 1 gratis",
+      estado: "inactivo",
+      fechaInicio: "2023-11-01",
+      fechaFin: "2023-11-30",
+      tipoAplicacion: "por mecanica"
+    }, {
+      id: 2,
+      index: 4,
+      titulo: "Compra 1 y lleva 1 gratis",
+      estado: "inactivo",
+      fechaInicio: "2023-11-01",
+      fechaFin: "2023-11-30",
+      tipoAplicacion: "por mecanica"
+    },
+    {
+      id: 2,
+      index: 5,
+      titulo: "Compra 1 y lleva 1 gratis",
+      estado: "inactivo",
+      fechaInicio: "2023-11-01",
+      fechaFin: "2023-11-30",
+      tipoAplicacion: "por mecanica"
+    },
+    {
+      id: 2,
+      index: 6,
+      titulo: "Compra 1 y lleva 1 gratis",
+      estado: "inactivo",
+      fechaInicio: "2023-11-01",
+      fechaFin: "2023-11-30",
+      tipoAplicacion: "por mecanica"
+    },
   ]);
   const onCrear = () => {
     alert('Crear nuevo cupón');
@@ -42,10 +77,10 @@ const CuponesPage: React.FC = () => {
   return (
     <>
       <div className="">
-        <h1 className="text-center font-semibold text-2xl pt-5">Administrador de cupones</h1>
-        <div className="flex justify-between items-center px-5 ">
+        <h1 className="text-center font-semibold text-2xl p-5 bg-[#9b0e0e] text-white">Administrador de cupones</h1>
+        <div className="flex justify-between items-center p-5 ">
           <h2 className="text-xl font-semibold">Listado de Cupones</h2>
-          <Button label="Crear cupón" icon="pi pi-plus" raised  className="p-2" onClick={onCrear} />
+          <Button label="Crear cupón" icon="pi pi-plus" raised className="bg-[#ff2c2c] text-white p-2 hover:bg-[#8b1f1f]" onClick={onCrear} />
         </div>
         <div className="m-5">
           <CuponesTable cupones={cupones} onEdit={onEditar} onStatus={onEliminar} />
@@ -55,4 +90,4 @@ const CuponesPage: React.FC = () => {
   )
 }
 
-export default CuponesPage;
+export default CuponesPage; 

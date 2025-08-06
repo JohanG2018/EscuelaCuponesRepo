@@ -31,7 +31,10 @@ const CuponesTable: React.FC<Props> = ({ cupones, onEdit, onStatus }) => {
     }
     return (
             <>    
-            <DataTable value={cupones} paginator rows={5} rowsPerPageOptions={[5,10,20]} responsiveLayout="scroll" className="">
+            <DataTable value={cupones}
+                paginator rows={5}
+                rowsPerPageOptions={[5,10,20]} 
+                responsiveLayout="scroll" >
                 <Column field="index"  header="#" />
                 <Column  field="titulo" header="Titulo"  />
                 <Column field="tipoAplicacion" header="Tipo de Aplicación" />                
@@ -45,6 +48,4 @@ const CuponesTable: React.FC<Props> = ({ cupones, onEdit, onStatus }) => {
 
     )
 }
-
-
 export default CuponesTable;
