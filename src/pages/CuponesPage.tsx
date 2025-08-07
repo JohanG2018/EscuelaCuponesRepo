@@ -3,8 +3,10 @@ import { useState } from "react";
 import { Button } from "primereact/button";
 import type { Cupon } from "../components/CuponesTable";
 import CuponesTable from "../components/CuponesTable";
+import { useNavigate } from "react-router-dom";
 
 const CuponesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [cupones, setCupones] = useState<Cupon[]>([
     {
       id: 1,
@@ -61,11 +63,11 @@ const CuponesPage: React.FC = () => {
     },
   ]);
   const onCrear = () => {
-    alert('Crear nuevo cupón');
+    navigate('/crear');
   };
 
   const onEditar = (cupon: Cupon) => {
-    alert(`Editar cupón: ${cupon.titulo}`);
+    navigate(`/editar/${cupon.id}`);
   };
 
   const onEliminar = (cupon: Cupon) => {
