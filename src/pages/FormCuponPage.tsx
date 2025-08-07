@@ -10,27 +10,83 @@ import { Column } from 'primereact/column';
 import { FileUpload } from "primereact/fileupload";
 import { Button } from "primereact/button";
 import { RadioButton } from 'primereact/radiobutton';
-import type { CheckboxChangeEvent } from 'primereact/checkbox';
 import { InputNumber } from 'primereact/inputnumber';
 
 
 const FormCuponPage: React.FC = () => {
-  const [titulo, setTitulo] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [fechaInicio, setFechaInicio] = useState<Date | null>(null);
-  const [fechaFin, setFechaFin] = useState<Date | null>(null);
-  const [tipoAplicacion, setTipoAplicacion] = useState<string[]>([]);
-  const [selectedLocales, setSelectedLocales] = useState<any[]>([]);
-  const [selectedCategorias, setSelectedCategorias] = useState([]);
-  const [selectedSubcategorias, setSelectedSubcategorias] = useState([]);
-  const [selectedProductos, setSelectedProductos] = useState([]);
-  const [legal, setLegal] = useState("");
-  const [tipoAmbiente, setTipoAmbiente] = useState<string[]>([]);
-  const [value3, setValue3] = useState(0);
-  const [formatoLogo, setFormatoLogo] = useState<string>('formato1');
-  const [checked, setChecked] = useState(false);
-  const [value1, setValue1] = useState<number>(0);
-  const [criterio, setCriterio] = useState([]);
+  interface FormularioCupon {
+    titulo: string;
+    descripcion: string;
+    factura: boolean;
+    fechaInicio: Date | null;
+    fechaFin: Date | null;
+    tipoAplicacion: string[];
+    tipoAmbiente: string[];
+    valorMinimo: number;
+    criterio: string[];
+    locales: any[];
+    categorias: any[];
+    subcategorias: any[];
+    proveedores: any[];
+    productos: any[];
+    productosExcluidos: any[];
+    combinaciones: any[];
+    combinada: boolean;
+    cantidadProductos: number;
+    legal: string;
+    formatoLogo: string;
+    logo: File | null;
+  }
+  const [formulario, setFormulario] = useState<FormularioCupon>({
+    titulo: "",
+    descripcion: "",
+    factura: false,
+    fechaInicio: null,
+    fechaFin: null,
+    tipoAplicacion: [],
+    tipoAmbiente: [],
+    valorMinimo: 0,
+    criterio: [],
+    locales: [],
+    categorias: [],
+    subcategorias: [],
+    proveedores: [],
+    productos: [],
+    productosExcluidos: [],
+    combinaciones: [],
+    combinada: false,
+    cantidadProductos: 0,
+    legal: "",
+    formatoLogo: 'formato1',
+    logo: null
+  });
+
+  const handleInputChange = <K extends keyof FormularioCupon>(
+    field: K,
+    value: FormularioCupon[K]
+  ) => {
+    setFormulario((prev) => ({ ...prev, [field]: value }));
+  };
+  const handleCheckboxArrayChange = <K extends keyof FormularioCupon>(
+    field: K,
+    value: string,
+    checked: boolean
+  ) => {
+    const current = new Set(formulario[field] as string[]);
+    checked ? current.add(value) : current.delete(value);
+    setFormulario((prev) => ({ ...prev, [field]: Array.from(current) as FormularioCupon[K] }));
+  };
+  const handleSubmit = () => {
+    // Validaciones mínimas
+    if (!formulario.titulo || !formulario.descripcion) {
+      alert("Por favor, completa los campos obligatorios.");
+      return;
+    }
+
+    console.log("Formulario a enviar:", formulario);
+
+    // Aquí enviarías por fetch/Axios o lo convertirías a XML
+  };
 
   const locales = [
     { name: "Moderna", establecimiento: "055" }, { name: "Alborada" }, { name: "Av. Francisco de Orellana" }, { name: "Gómez Rendón" }, { name: "Piazza Samborondón" }
@@ -41,6 +97,9 @@ const FormCuponPage: React.FC = () => {
   const subcategorias = [
     { name: "Bebidas" }, { name: "Lácteos" }, { name: "Frutas y Verduras" }, { name: "Cereales" }, { name: "Snacks" }
   ];
+  const proveedores = [
+    { name: "Proveedor A" }, { name: "Proveedor B" }, { name: "Proveedor C" }, { name: "Proveedor D" }, { name: "Proveedor E" }
+  ]
   const productos = [
     { name: "Pollo Horneado" }, { name: "Cerveza Artesanal" }, { name: "Pan Integral" }, { name: "Galletas de Avena" }, { name: "Leche Deslactosada" }
   ];
@@ -49,88 +108,97 @@ const FormCuponPage: React.FC = () => {
     { id: 'formato1', imagen: '/img/formato1.png', label: 'Formato 1' },
     { id: 'formato2', imagen: '/img/formato2.png', label: 'Formato 2' },
     { id: 'formato3', imagen: '/img/formato3.png', label: 'Formato 3' },
-    { id: 'sinformato',imagen: '/img/formato4.png', label: 'Sin Formato' },
+    { id: 'sinformato', imagen: '/img/formato4.png', label: 'Sin Formato' },
   ];
-  const onCriteriosChange = (e) => {
-    let _ingredients = [...criterio];
-
-    if (e.checked)
-      _ingredients.push(e.value);
-    else
-      _ingredients.splice(_ingredients.indexOf(e.value), 1);
-
-    setCriterio(_ingredients);
-  }
-  const onTipoAplicacionChange = (e: CheckboxChangeEvent) => {
-    const value = e.value;
-    const checked = e.checked ?? false;
-
-    if (checked) {
-      setTipoAplicacion([value]);
-    } else {
-      setTipoAplicacion([]);
-    }
-  };
-
-  const onTipoAmbienteChange = (e: CheckboxChangeEvent) => {
-    const value = e.value;
-    const checked = e.checked ?? false;
-
-    if (checked) {
-      setTipoAmbiente([value]);
-    } else {
-      setTipoAmbiente([]);
-    }
-  };
+ 
+ 
   return (
     <div className="  mx-auto p-6 space-y-6">
       <h1 className="text-center text-2xl font-bold mb-6 bg-[#9b0e0e] text-white p-4">
         Administrador de Promociones - Cupones
-        </h1>
+      </h1>
 
       <section>
         <h2 className="text-xl font-semibold border-b pb-1 mb-4">
-        Información General  
+          Información General
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/*Titulo */}
           <div className="flex flex-col gap-2">
-            <label htmlFor="titulo" className="font-semibold">Titulo del Cupón</label>  
-            <InputText id="titulo" value={titulo} 
-              onChange={(e) => setTitulo(e.target.value)}
-              placeholder="Ingrese el título" 
+            <label htmlFor="titulo" className="font-semibold">Titulo del Cupón</label>
+            <InputText id="titulo" value={formulario.titulo}
+              onChange={(e) => handleInputChange("titulo", e.target.value)}
+              placeholder="Ingrese el título"
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           {/*Ambiente */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 ">
             <label htmlFor="" className="font-semibold">Tipo de Ambiente</label>
             <div className="flex gap-4">
-              <Checkbox inputId="pruebas" value="Pruebas" onChange={onTipoAmbienteChange} checked={tipoAmbiente.includes("Pruebas")} />
+              <Checkbox
+                inputId="pruebas"
+                value="Pruebas"
+                onChange={(e) => handleCheckboxArrayChange('tipoAmbiente', e.value, e.checked ?? false)}
+                checked={formulario.tipoAmbiente.includes("Pruebas")} />
               <label htmlFor="prueba">Pruebas</label>
-              <Checkbox inputId="produccion" value="Produccion" onChange={onTipoAmbienteChange} checked={tipoAmbiente.includes("Produccion")} />
+              <Checkbox
+                inputId="produccion"
+                value="Produccion"
+                onChange={(e) => handleCheckboxArrayChange('tipoAmbiente', e.value, e.checked ?? false)}
+                checked={formulario.tipoAmbiente.includes("Produccion")} />
               <label htmlFor="produccion">Producción</label>
             </div>
           </div>
           {/* Descripción */}
           <div className="md:col-span-2 flex flex-col gap-2">
             <label className="font-semibold" htmlFor="descripcion"> Descripción del cupón</label>
-            <InputTextarea id="descripcion" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} rows={3} autoResize placeholder="Ingrese la descripción"
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"  />
+            <InputTextarea
+              id="descripcion"
+              value={formulario.descripcion}
+              onChange={(e) => handleInputChange("descripcion", e.target.value)}
+              rows={3} autoResize placeholder="Ingrese la descripción"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div className="md:col-span-2 flex flex-col gap-2 ">
+            <label htmlFor="" className="font-semibold">Con Datos</label>
+            <div className="flex gap-4">
+              <Checkbox
+                inputId="factura"
+                value="permiteFactura"
+                onChange={(e) => handleInputChange('factura', e.checked ?? false)}
+                checked={formulario.factura} />
+              <label htmlFor="prueba">Permite factura</label>
+            </div>
           </div>
           {/* Fechas */}
           <div className="flex flex-col gap-2">
             <label htmlFor="fechaInicio" className="font-semibold">Desde</label>
-            <Calendar id="fechaInicio" value={fechaInicio} onChange={(e) => setFechaInicio(e.value as Date)} showIcon placeholder="Seleccione una fecha" />
-          </div> 
-           <div className="flex flex-col gap-2">
-        <label htmlFor="fechaFin" className="font-semibold">Hasta:</label>
-        <Calendar id="fechaFin" value={fechaFin} onChange={(e) => setFechaFin(e.value as Date)} showIcon placeholder="Seleccione una fecha" />
-      </div> 
-        </div>    
-      </section> 
+            <Calendar
+              id="fechaInicio"
+              value={formulario.fechaInicio}
+              onChange={(e) => handleInputChange('fechaInicio', e.value as Date)}
+              showIcon
+              placeholder="Seleccione una fecha"
+              className="w-full border border-gray-300 rounded-md px-3 py-2"
+
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="fechaFin" className="font-semibold">Hasta:</label>
+            <Calendar
+              id="fechaFin"
+              value={formulario.fechaFin}
+              onChange={(e) => handleInputChange('fechaFin', e.value as Date)}
+              showIcon
+              placeholder="Seleccione una fecha"
+              className=" border border-gray-300 rounded-md px-3 py-2"
+            />
+          </div>
+        </div>
+      </section>
       <section>
         <h2 className="text-xl font-semibold border-b pb-1 mb-4">
-        Condiciones de Aplicación
+          Condiciones de Aplicación
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6" >
           {/* Tipo de Aplicación */}
@@ -139,174 +207,177 @@ const FormCuponPage: React.FC = () => {
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
                 <Checkbox
-                inputId="general"
-                value="General"
-                onChange={onTipoAplicacionChange}
-                checked={tipoAplicacion.includes("General")}
-              />
-              <label htmlFor="general">General</label>
+                  inputId="general"
+                  value="General"
+                  onChange={(e) => handleCheckboxArrayChange("tipoAplicacion", e.value, e.checked ?? false)}
+                  checked={formulario.tipoAplicacion.includes("General")}
+                  className=" border border-black "
+                />
+                <label htmlFor="general">General</label>
               </div>
               <div className="flex items-center gap-2">
-          <Checkbox
-            inputId="mecanica"
-            value="Por mecánica"
-            onChange={onTipoAplicacionChange}
-            checked={tipoAplicacion.includes("Por mecánica")}
-          />
-          <label htmlFor="mecanica">Por mecánica</label>
-        </div>
+                <Checkbox
+                  inputId="mecanica"
+                  value="Por mecánica"
+                  onChange={(e) => handleCheckboxArrayChange("tipoAplicacion", e.value, e.checked ?? false)}
+                  checked={formulario.tipoAplicacion.includes("Por mecánica")}
+                />
+                <label htmlFor="mecanica">Por mecánica</label>
+              </div>
             </div>
           </div>
           {/* Valor */}
           <div className="flex flex-col gap-2">
             <label htmlFor="valor" className="font-semibold">Valor</label>
             <InputNumber
-        inputId="valorMinimo"
-        value={value1}
-        onValueChange={(e) => setValue1(e.value)}
-        mode="currency"
-        currency="USD"
-        locale="en-US"
-      placeholder="Ej. 20.00"
-       className="w-full border border-gray-300  px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        {/* Criterio de compra */}
-        <div className="md:col-span-2 flex flex-col gap-2">
-          <label htmlFor="Criterio de Compra" className="font-semibold">Criterio de Compra</label>
-          <div className="flex gap-6">
-            <div className="flex items-center gap-2">
-              <Checkbox
-            value="1"
-            onChange={onCriteriosChange}
-            checked={criterio.includes("1")}
-          />
-          <label>Recurrente por cada valor</label>
+              inputId="valorMinimo"
+              value={formulario.valorMinimo}
+              onValueChange={(e) => handleInputChange("valorMinimo", e.value || 0)}
+              mode="currency"
+              currency="USD"
+              locale="en-US"
+              min={0}
+              placeholder="Ej. 20.00"
+              className="w-full border border-gray-300  px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          {/* Criterio de compra */}
+          <div className="md:col-span-2 flex flex-col gap-2">
+            <label htmlFor="Criterio de Compra" className="font-semibold">Criterio de Compra</label>
+            <div className="flex gap-6">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  value="1"
+                  onChange={(e)=>handleCheckboxArrayChange("criterio","1", e.value, e.checked )}
+                  checked={formulario.criterio.includes("1")}
+                />
+                <label>Recurrente por cada valor</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  value="2"
+                  onChange={(e)=>handleCheckboxArrayChange("criterio","2", e.value, e.checked)}
+                  checked={formulario.criterio.includes("2")}
+                />
+                <label>Mínimo de valor de compra</label>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-          <Checkbox
-            value="2"
-            onChange={onCriteriosChange}
-            checked={criterio.includes("2")}
-          />
-          <label>Mínimo de valor de compra</label>
+          </div>
+          {/* Selector de locales */}
+          <div className="md:col-span-2 flex flex-col gap-2">
+            <label htmlFor="locales" className="font-semibold">Locales</label>
+            <MultiSelect
+              inputId="locales"
+              value={formulario.locales}
+              onChange={(e) => handleInputChange("locales", e.value)}
+              options={locales}
+              optionLabel="name"
+              placeholder="Seleccione uno o varios locales"
+              filter
+              className="w-full"
+              maxSelectedLabels={10}
+            />
+          </div>
         </div>
-          </div>  
-        </div>
-        {/* Selector de locales */}
-        <div className="md:col-span-2 flex flex-col gap-2">
-          <label htmlFor="locales" className="font-semibold">Locales</label>
-          <MultiSelect
-        inputId="locales"
-        value={selectedLocales}
-        onChange={(e) => setSelectedLocales(e.value)}
-        options={locales}
-        optionLabel="name"
-        placeholder="Seleccione uno o varios locales"
-        filter
-        className="w-full"
-        maxSelectedLabels={10}
-      />  
-        </div>  
-        </div>  
       </section>
       <section>
         <h2 className="text-xl font-semibold border-b pb-1 mb-4">Productos y Categorias</h2>
         {/*Participantes */}
         <div className="grid grid-cols-1  gap-6 mb-4">
-        {/*Categoria */}
-        <div className="flex flex-col gap-2">
-          <label htmlFor="categoria">Categoria</label>
-          <Dropdown
-        options={categorias}
-        value={selectedCategorias}
-        onChange={(e) => setSelectedCategorias(e.value)}
-        placeholder="Seleccione una o varias categorías"
-        name="categorias"
-      />
-        </div>
-        {/*SubCategoria */}
-        <div className="flex flex-col gap-2">
-          <label htmlFor="subCategoria" className="font-semibold">SubCategoria</label>
-          <Dropdown
-        options={subcategorias}
-        value={selectedSubcategorias}
-        onChange={(e) => setSelectedSubcategorias(e.value)}
-        placeholder="Seleccione una o varias subcategorías"
-        name="subcategorias"
-      />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="producto" className="font-semibold">Producto</label>
-          <Dropdown
-        options={productos}
-        value={selectedProductos}
-        onChange={(e) => setSelectedProductos(e.value)}
-        placeholder="Seleccione uno o varios productos"
-        name="productos"
-      />
-        </div>
+          {/*Categoria */}
+          <div className="flex flex-col gap-2">
+            <label htmlFor="categoria">Categoria</label>
+            <Dropdown
+              options={categorias}
+              value={formulario.categorias}
+              onChange={(e) => handleInputChange("categorias", e.value)}
+              placeholder="Seleccione una o varias categorías"
+              name="categorias"
+            />
+          </div>
+          {/*SubCategoria */}
+          <div className="flex flex-col gap-2">
+            <label htmlFor="subCategoria" className="font-semibold">SubCategoria</label>
+            <Dropdown
+              options={subcategorias}
+              value={formulario.subcategorias}
+              onChange={(e) => handleInputChange("subcategorias", e.value)}
+              placeholder="Seleccione una o varias subcategorías"
+              name="subcategorias"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="proveedores" className="font-semibold">Proveedor</label>
+            <Dropdown
+              options={proveedores}
+              value={formulario.proveedores}
+              onChange={(e) => handleInputChange("proveedores", e.value)}
+              placeholder="Seleccione uno o varios proveedores"
+              name="proveedores"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="producto" className="font-semibold">Producto</label>
+            <Dropdown
+              options={productos}
+              value={formulario.productos}
+              onChange={(e) => handleInputChange("productos", e.value)}
+              placeholder="Seleccione uno o varios productos"
+              name="productos"
+            />
+          </div>
         </div>
         {/* Excluidos */}
         <div className="mt-6 flex flex-col gap-2">
           <label htmlFor="productosExcluidos" className="font-semibold">
-      Productos excluidos
-    </label>
-    <Dropdown
-      options={productos}
-      value={[]}
-      onChange={(e) => console.log("TODO: Guardar productos excluidos", e.value)}
-      placeholder="Seleccione productos a excluir"
-      name="productosExcluidos"
-    />
+            Productos excluidos
+          </label>
+          <Dropdown
+            options={productos}
+            value={formulario.productosExcluidos}
+            onChange={(e) =>handleInputChange("productosExcluidos", e.value)}
+            placeholder="Seleccione productos a excluir"
+            name="productosExcluidos"
+          />
         </div>
-      <div className="md:col-span-2">
-        <label htmlFor="combinaciones" className="font-semibold">
-          Tabla combinaciones
-        </label>
-        <div className="card col-span-2">
-          <DataTable
-            value={productos}
-            stripedRows
-            paginator
-            rows={3}
-            rowsPerPageOptions={[5, 10, 25, 50]}
-            tableStyle={{ minWidth: '75rem' }}
-          >
-            <Column field="name" header="Producto" style={{ width: '50%' }}></Column>
-            <Column field="tipo" header="Tipo" style={{ width: '25%' }}></Column>
-            <Column field="valor" header="Valor" style={{ width: '10%' }}></Column>
-            <Column field="cantidad" header="Cantidad" style={{ width: '10%' }}></Column>
-          </DataTable>
+        <div className="md:col-span-2">
+          <label htmlFor="combinaciones" className="font-semibold">
+            Tabla combinaciones
+          </label>
+          <div className="card col-span-2">
+            <div className="flex 
+           mb-2">
+              <Button
+                raised
+                icon="pi pi-plus"
+                label="Agregar"
+                className="p-button-success mt-3 p-3"
+                onClick={() => alert('Agregar nueva combinación')}
+              />
+
+            </div>
+            <DataTable
+              value={formulario.combinaciones}
+              stripedRows
+              paginator
+              rows={3}
+              rowsPerPageOptions={[5, 10, 25, 50]}
+              tableStyle={{ minWidth: '75rem' }}
+            >
+              <Column field="name" header="Producto" style={{ width: '50%' }}></Column>
+              <Column field="tipo" header="Tipo" style={{ width: '25%' }}></Column>
+              <Column field="valor" header="Valor" style={{ width: '10%' }}></Column>
+              <Column field="cantidad" header="Cantidad" style={{ width: '10%' }}></Column>
+            </DataTable>
+          </div>
         </div>
-      </div>
-       {/* Indicador de combinación */}
-  <div className="mt-6 flex flex-col gap-2">
-    <label htmlFor="" className="font-semibold">Combinación de mínimo de compra y productos/marcas</label>
-    <div className="flex gap-4 items-center">
-      <Checkbox inputId="combinada" onChange={(e) => setChecked(e.checked)} checked={checked} />
-      <label htmlFor="combinada" className="">Combinada</label>
-    </div>
-  </div>
-
-  {/* Cantidad mínima de productos */}
-  <div className="mt-4 md:w-64">
-    <label htmlFor="cantidad" className="font-semibold block mb-2">Cantidad de productos</label>
-    <InputNumber
-      inputId="cantidad"
-      value={value3}
-      onValueChange={(e) => setValue3(e.value)}
-      showButtons
-      min={0}
-      max={100}
-    />
-  </div>
-
+        {/* Indicador de combinación */}
+      
       </section>
 
       <section >
         <h2 className="text-xl font-semibold border-b pb-1 mb-4 mt-10">Configuración Visual</h2>
         <div className="flex flex-col  gap-4">
-         <label className="font-semibold">Tipo de Logo</label>
+          <label className="font-semibold">Tipo de Logo</label>
 
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -314,11 +385,11 @@ const FormCuponPage: React.FC = () => {
             <div
               key={formato.id}
               className={`border rounded-md p-3 text-center cursor-pointer transition-all duration-200
-          ${formatoLogo === formato.id ? 'ring-2 ring-blue-500' : 'hover:shadow-md'}`}
-              onClick={() => setFormatoLogo(formato.id)}
+          ${formulario.formatoLogo === formato.id ? 'ring-2 ring-blue-500' : 'hover:shadow-md'}`}
+              onClick={() => handleInputChange('formatoLogo', formato.id)}
             >
               <img
-                 src={formato.imagen} // <-- Usa tu imagen real aquí o temporalmente una genérica
+                src={formato.imagen} 
                 alt={formato.label}
                 className="w-full h-24 object-contain mb-2"
               />
@@ -326,52 +397,56 @@ const FormCuponPage: React.FC = () => {
                 inputId={formato.id}
                 name="formatoLogo"
                 value={formato.id}
-                onChange={(e) => setFormatoLogo(e.value)}
-                checked={formatoLogo === formato.id}
+                onChange={(e) => handleInputChange("formatoLogo",e.value)}
+                checked={formulario.formatoLogo === formato.id}
               />
               <label htmlFor={formato.id} className="ml-2">{formato.label}</label>
             </div>
           ))}
-          
+
         </div>
         <div className="mt-6">
-    <p className="text-sm text-gray-500">
-      Nota: Si no se selecciona un formato de logo, se imprimirá el cupón sin imagen, solo con texto.
-    </p>
-  </div>
-  
-          {/* Subir logo*/}
-          <div className="mt-6">
-    <label className="font-semibold block mb-2">Cargar Logo (.bmp, máx 600px ancho)</label>
-    <FileUpload
-      name="logo"
-      url="/api/upload"
-      accept=".bmp"
-      maxFileSize={1000000}
-      customUpload
-      uploadHandler={(e) => console.log("Subido", e.files)}
-      emptyTemplate={<p className="m-0">Arrastre el archivo aquí o haga clic para cargar.</p>}
-    />
-  </div>
-   {/* Legal */}
-  <div className="mt-6 flex flex-col gap-2 md:w-2/3">
-    <label htmlFor="legal" className="font-semibold">
-      Texto legal del cupón
-    </label>
-    <InputTextarea
-      id="legal"
-      value={legal}
-      onChange={(e) => setLegal(e.target.value)}
-      rows={2}
-      autoResize
-      placeholder="Ej: Promoción válida hasta agotar stock. Máximo 1 cupón por persona."
-    />
-  </div>
-      </section>
-    <div className="md:col-span-2 flex justify-end mt-6 space-x-4">
-          <Button label="Guardar" raised icon="pi pi-check" className="p-button-success p-4" />
-          <Button label="Cancelar" raised icon="pi pi-close" className="p-button-danger p-4" />
+          <p className="text-sm text-gray-500">
+            Nota: Si no se selecciona un formato de logo, se imprimirá el cupón sin imagen, solo con texto.
+          </p>
         </div>
+
+        {/* Subir logo*/}
+        <div className="mt-6">
+          <label className="font-semibold block mb-2">Cargar Logo (.bmp, máx 600px ancho)</label>
+          <FileUpload
+            name="logo"
+            url="/api/upload"
+            accept=".bmp"
+            maxFileSize={1000000}
+            customUpload
+            uploadHandler={(e) =>{ 
+              const archivo = e.files?.[0] || null;
+              handleInputChange("logo", archivo);
+              console.log("Archivo cargado localmente:", archivo);
+    }}
+            emptyTemplate={<p className="m-0">Arrastre el archivo aquí o haga clic para cargar.</p>}
+          />
+        </div>
+        {/* Legal */}
+        <div className="mt-6 flex flex-col gap-2 md:w-2/3">
+          <label htmlFor="legal" className="font-semibold">
+            Texto legal del cupón
+          </label>
+          <InputTextarea
+            id="legal"
+            value={formulario.legal}
+            onChange={(e) => handleInputChange("legal", e.target.value)}
+            rows={2}
+            autoResize
+            placeholder="Ej: Promoción válida hasta agotar stock. Máximo 1 cupón por persona."
+          />
+        </div>
+      </section>
+      <div className="md:col-span-2 flex justify-end mt-6 space-x-4">
+        <Button label="Guardar" onClick={handleSubmit} raised icon="pi pi-check" className="p-button-success p-4" />
+        <Button label="Cancelar" raised icon="pi pi-close" className="p-button-danger p-4" />
+      </div>
     </div>
 
   );

@@ -3,7 +3,6 @@ import React from "react";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Button } from "primereact/button";
-import { InputText } from "primereact/inputtext"; // asegúrate de tener esto
 
 
 export interface Cupon {
