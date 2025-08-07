@@ -8,12 +8,12 @@ import { InputText } from "primereact/inputtext"; // asegúrate de tener esto
 
 export interface Cupon {
     id: number;
-    index?: number; 
+    //index?: number; 
     titulo: string;
-    estado: 'activo' | 'inactivo';
+    //estado: 'activo' | 'inactivo';
     fechaInicio: string;
     fechaFin: string;
-    tipoAplicacion: 'General' | 'por mecanica';
+    //tipoAplicacion: 'General' | 'por mecanica';
 }
 interface Props {
     cupones: Cupon[];
@@ -30,21 +30,21 @@ const CuponesTable: React.FC<Props> = ({ cupones, onEdit, onStatus }) => {
         );
     }
     return (
-            <>    
+        <>
             <DataTable value={cupones}
                 paginator rows={5}
-                rowsPerPageOptions={[5,10,20]} 
+                rowsPerPageOptions={[5, 10, 20]}
                 responsiveLayout="scroll" >
-                <Column field="index"  header="#" />
-                <Column  field="titulo" header="Titulo"  />
-                <Column field="tipoAplicacion" header="Tipo de Aplicación" />                
+                <Column field="id" header="#" />
+                <Column field="titulo" header="Titulo" />
+                <Column field="tipoAplicacion" header="Tipo de Aplicación" />
                 <Column field="fechaInicio" header="Inicio" />
                 <Column field="fechaFin" header="Fin" />
                 <Column field="estado" header="Estado" />
                 <Column header="Acciones" body={actionTemplate} style={{ width: '150px' }} />
             </DataTable>
-            </>    
-                      
+        </>
+
 
     )
 }
