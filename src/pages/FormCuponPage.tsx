@@ -219,7 +219,7 @@ const FormCuponPage: React.FC = () => {
         <div className="grid grid-cols-1  gap-6 mb-4">
           {/*Categoria */}
           <div className="flex flex-col gap-2">
-            <label htmlFor="categoria">Categoria</label>
+            <label htmlFor="categoria" className="font-semibold text-gray-700">Categoria</label>
             <Dropdown
               options={categorias}
               value={selectedCategorias}
@@ -230,7 +230,7 @@ const FormCuponPage: React.FC = () => {
           </div>
           {/*SubCategoria */}
           <div className="flex flex-col gap-2">
-            <label htmlFor="subCategoria" className="font-semibold">SubCategoria</label>
+            <label htmlFor="subCategoria" className="font-semibold text-gray-700">SubCategoria</label>
             <Dropdown
               options={subcategorias}
               value={selectedSubcategorias}
@@ -240,7 +240,7 @@ const FormCuponPage: React.FC = () => {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <label htmlFor="producto" className="font-semibold">Producto</label>
+            <label htmlFor="producto" className="font-semibold text-gray-700">Producto</label>
             <Dropdown
               options={productos}
               value={selectedProductos}
@@ -319,7 +319,7 @@ const FormCuponPage: React.FC = () => {
               key={formato.id}
               className={`border rounded-md p-3 text-center cursor-pointer transition-all duration-200
           ${formatoLogo === formato.id ? 'ring-2 ring-blue-500' : 'hover:shadow-md'}`}
-              onClick={() => setFormatoLogo(formato.id)}
+              onClick={() => { setFormatoLogo(formato.id); setCheckedDatosCliente(false); }}
             >
               <img
                 src={formato.imagen}
@@ -335,84 +335,18 @@ const FormCuponPage: React.FC = () => {
               />
               <label htmlFor={formato.id} className="ml-2">{formato.label}</label>
 
-              {formato.id === 'formato4' && formatoLogo === 'formato4' && (
+              {formatoLogo === formato.id && (
                 <div className="mt-4 flex flex-col gap-2 text-left">
-                  <label className="font-semibold mb-1">Mostrar datos del cliente en el ticket:</label>
+                  {/* <label className="font-semibold mb-1">Mostrar datos del cliente en el ticket:</label> */}
                   <div className="flex flex-col gap-1">
                     <div>
                       <Checkbox
-                        inputId="dato-cedula"
-                        value="cedula"
-                        onChange={(e) => {
-                          setDatosFormato4((prev: string[]) =>
-                            e.checked
-                              ? [...prev, e.value]
-                              : prev.filter((v) => v !== e.value)
-                          );
-                        }}
-                        checked={datosFormato4?.includes("cedula")}
+                        inputId="datos-cliente"
+                        value="datos"
+                        onChange={(e) => setCheckedDatosCliente(!!e.checked)}
+                        checked={checkedDatosCliente}
                       />
-                      <label htmlFor="dato-cedula" className="ml-2">Cédula</label>
-                    </div>
-                    <div>
-                      <Checkbox
-                        inputId="dato-nombre"
-                        value="nombre"
-                        onChange={(e) => {
-                          setDatosFormato4((prev: string[]) =>
-                            e.checked
-                              ? [...prev, e.value]
-                              : prev.filter((v) => v !== e.value)
-                          );
-                        }}
-                        checked={datosFormato4?.includes("nombre")}
-                      />
-                      <label htmlFor="dato-nombre" className="ml-2">Nombre</label>
-                    </div>
-                    <div>
-                      <Checkbox
-                        inputId="dato-correo"
-                        value="correo"
-                        onChange={(e) => {
-                          setDatosFormato4((prev: string[]) =>
-                            e.checked
-                              ? [...prev, e.value]
-                              : prev.filter((v) => v !== e.value)
-                          );
-                        }}
-                        checked={datosFormato4?.includes("correo")}
-                      />
-                      <label htmlFor="dato-correo" className="ml-2">Correo electrónico</label>
-                    </div>
-                    <div>
-                      <Checkbox
-                        inputId="dato-telefono"
-                        value="telefono"
-                        onChange={(e) => {
-                          setDatosFormato4((prev: string[]) =>
-                            e.checked
-                              ? [...prev, e.value]
-                              : prev.filter((v) => v !== e.value)
-                          );
-                        }}
-                        checked={datosFormato4?.includes("telefono")}
-                      />
-                      <label htmlFor="dato-telefono" className="ml-2">Teléfono</label>
-                    </div>
-                    <div>
-                      <Checkbox
-                        inputId="dato-ciudad"
-                        value="ciudad"
-                        onChange={(e) => {
-                          setDatosFormato4((prev: string[]) =>
-                            e.checked
-                              ? [...prev, e.value]
-                              : prev.filter((v) => v !== e.value)
-                          );
-                        }}
-                        checked={datosFormato4?.includes("ciudad")}
-                      />
-                      <label htmlFor="dato-ciudad" className="ml-2">Ciudad</label>
+                      <label htmlFor="datos-cliente" className="ml-2">Incluir Datos Cliente</label>
                     </div>
                   </div>
                 </div>
