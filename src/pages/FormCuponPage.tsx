@@ -14,6 +14,9 @@ import { InputNumber } from 'primereact/inputnumber';
 
 
 const FormCuponPage: React.FC = () => {
+  const [descripcionTicket, setDescripcionTicket] = useState("");
+  const [datosFormato4, setDatosFormato4] = useState<string[]>([]);
+  const [checkedDatosCliente, setCheckedDatosCliente] = useState(false);
   interface FormularioCupon {
     titulo: string;
     descripcion: string;
@@ -110,8 +113,8 @@ const FormCuponPage: React.FC = () => {
     { id: 'formato3', imagen: '/img/formato3.png', label: 'Formato 3' },
     { id: 'sinformato', imagen: '/img/formato4.png', label: 'Sin Formato' },
   ];
- 
- 
+
+
   return (
     <div className="  mx-auto p-6 space-y-6">
       <h1 className="text-center text-2xl font-bold mb-6 bg-[#9b0e0e] text-white p-4">
@@ -149,7 +152,7 @@ const FormCuponPage: React.FC = () => {
               <label htmlFor="produccion">Producción</label>
             </div>
           </div>
-          {/* Descripción */}
+          {/* Descripción General*/}
           <div className="md:col-span-2 flex flex-col gap-2">
             <label className="font-semibold" htmlFor="descripcion"> Descripción del cupón</label>
             <InputTextarea
@@ -205,7 +208,7 @@ const FormCuponPage: React.FC = () => {
           <div className="flex flex-col gap-2">
             <label htmlFor="tipoAplicacion" className="font-semibold">Tipo de Aplicación</label>
             <div className="flex gap-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <Checkbox
                   inputId="general"
                   value="General"
@@ -247,7 +250,7 @@ const FormCuponPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Checkbox
                   value="1"
-                  onChange={(e)=>handleCheckboxArrayChange("criterio","1", e.value, e.checked )}
+                  onChange={(e) => handleCheckboxArrayChange("criterio", "1", e.value, e.checked)}
                   checked={formulario.criterio.includes("1")}
                 />
                 <label>Recurrente por cada valor</label>
@@ -255,7 +258,7 @@ const FormCuponPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Checkbox
                   value="2"
-                  onChange={(e)=>handleCheckboxArrayChange("criterio","2", e.value, e.checked)}
+                  onChange={(e) => handleCheckboxArrayChange("criterio", "2", e.value, e.checked)}
                   checked={formulario.criterio.includes("2")}
                 />
                 <label>Mínimo de valor de compra</label>
@@ -285,7 +288,7 @@ const FormCuponPage: React.FC = () => {
         <div className="grid grid-cols-1  gap-6 mb-4">
           {/*Categoria */}
           <div className="flex flex-col gap-2">
-            <label htmlFor="categoria">Categoria</label>
+            <label htmlFor="categoria" className="font-semibold text-gray-700">Categoria</label>
             <Dropdown
               options={categorias}
               value={formulario.categorias}
@@ -296,7 +299,7 @@ const FormCuponPage: React.FC = () => {
           </div>
           {/*SubCategoria */}
           <div className="flex flex-col gap-2">
-            <label htmlFor="subCategoria" className="font-semibold">SubCategoria</label>
+            <label htmlFor="subCategoria" className="font-semibold text-gray-700">SubCategoria</label>
             <Dropdown
               options={subcategorias}
               value={formulario.subcategorias}
@@ -306,7 +309,7 @@ const FormCuponPage: React.FC = () => {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <label htmlFor="proveedores" className="font-semibold">Proveedor</label>
+            <label htmlFor="proveedores" className="font-semibold text-gray-700">Proveedor</label>
             <Dropdown
               options={proveedores}
               value={formulario.proveedores}
@@ -316,7 +319,7 @@ const FormCuponPage: React.FC = () => {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <label htmlFor="producto" className="font-semibold">Producto</label>
+            <label htmlFor="producto" className="font-semibold text-gray-700">Producto</label>
             <Dropdown
               options={productos}
               value={formulario.productos}
@@ -334,7 +337,7 @@ const FormCuponPage: React.FC = () => {
           <Dropdown
             options={productos}
             value={formulario.productosExcluidos}
-            onChange={(e) =>handleInputChange("productosExcluidos", e.value)}
+            onChange={(e) => handleInputChange("productosExcluidos", e.value)}
             placeholder="Seleccione productos a excluir"
             name="productosExcluidos"
           />
@@ -371,7 +374,7 @@ const FormCuponPage: React.FC = () => {
           </div>
         </div>
         {/* Indicador de combinación */}
-      
+
       </section>
 
       <section >
@@ -386,10 +389,10 @@ const FormCuponPage: React.FC = () => {
               key={formato.id}
               className={`border rounded-md p-3 text-center cursor-pointer transition-all duration-200
           ${formulario.formatoLogo === formato.id ? 'ring-2 ring-blue-500' : 'hover:shadow-md'}`}
-              onClick={() => handleInputChange('formatoLogo', formato.id)}
+              onClick={() => { handleInputChange('formatoLogo', formato.id); setCheckedDatosCliente(false); }}
             >
               <img
-                src={formato.imagen} 
+                src={formato.imagen}
                 alt={formato.label}
                 className="w-full h-24 object-contain mb-2"
               />
@@ -397,13 +400,35 @@ const FormCuponPage: React.FC = () => {
                 inputId={formato.id}
                 name="formatoLogo"
                 value={formato.id}
-                onChange={(e) => handleInputChange("formatoLogo",e.value)}
+                onChange={(e) => handleInputChange("formatoLogo", e.value)}
                 checked={formulario.formatoLogo === formato.id}
               />
               <label htmlFor={formato.id} className="ml-2">{formato.label}</label>
+
+              {formatoLogo === formato.id && (
+                <div className="mt-4 flex flex-col gap-2 text-left">
+                  {/* <label className="font-semibold mb-1">Mostrar datos del cliente en el ticket:</label> */}
+                  <div className="flex flex-col gap-1">
+                    <div>
+                      <Checkbox
+                        inputId="datos-cliente"
+                        value="datos"
+                        onChange={(e) => setCheckedDatosCliente(!!e.checked)}
+                        checked={checkedDatosCliente}
+                      />
+                      <label htmlFor="datos-cliente" className="ml-2">Incluir Datos Cliente</label>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
-
+        </div>
+        {/* Descripción del ticket */}
+        <div className="md:col-span-2 flex flex-col gap-2">
+          <label className="font-semibold" htmlFor="descripcion"> Descripción del ticket</label>
+          <InputTextarea id="descripcion" value={descripcionTicket} onChange={(e) => setDescripcionTicket(e.target.value)} rows={3} autoResize placeholder="Ingrese el texto que aparecerá en el ticket"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <div className="mt-6">
           <p className="text-sm text-gray-500">
@@ -420,11 +445,11 @@ const FormCuponPage: React.FC = () => {
             accept=".bmp"
             maxFileSize={1000000}
             customUpload
-            uploadHandler={(e) =>{ 
+            uploadHandler={(e) => {
               const archivo = e.files?.[0] || null;
               handleInputChange("logo", archivo);
               console.log("Archivo cargado localmente:", archivo);
-    }}
+            }}
             emptyTemplate={<p className="m-0">Arrastre el archivo aquí o haga clic para cargar.</p>}
           />
         </div>
