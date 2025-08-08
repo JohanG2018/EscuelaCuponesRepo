@@ -1,3 +1,36 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.p-checkbox .p-checkbox-box {
+     border: 2px solid #192939; 
+    /* background: #dfd5d5; */
+     width: 20px; 
+    height: 20px; 
+    /* color: #2f5377; */
+    border-radius: 3px; 
+    /*outline-color: #753b3b00;*/
+}
+.p-inputtext {
+    font-family: var(--font-family);
+    font-feature-settings: var(--font-feature-settings, normal);
+    font-size: 1rem;
+    color: #495057;
+    background: #ffffff;
+    padding: 0.5rem 0.5rem;
+    border: 1px solid #615a5a ;
+    /* transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s; */
+    /* -webkit-appearance: none; */
+    -moz-appearance: none; 
+    /* appearance: none; */
+    /* border-radius: 3px; */
+    /* outline-color: transparent; */
+}
+
+.p-multiselect {
+    background: #ffffff;
+    border: 1px solid #9b9494 !important;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    border-radius: 3px;
+    outline-color: transparent;
+}

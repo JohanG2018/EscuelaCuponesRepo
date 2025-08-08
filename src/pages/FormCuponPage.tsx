@@ -5,18 +5,22 @@ import { Calendar } from "primereact/calendar";
 import { Checkbox } from "primereact/checkbox";
 import { MultiSelect } from "primereact/multiselect";
 import Dropdown from "../components/MultiselectComponent";
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
 import { FileUpload } from "primereact/fileupload";
 import { Button } from "primereact/button";
 import { RadioButton } from 'primereact/radiobutton';
 import { InputNumber } from 'primereact/inputnumber';
+import TableCombinacionesComponent from "../components/TableCombinacionesComponent";
 
 
 const FormCuponPage: React.FC = () => {
   const [descripcionTicket, setDescripcionTicket] = useState("");
-  const [datosFormato4, setDatosFormato4] = useState<string[]>([]);
   const [checkedDatosCliente, setCheckedDatosCliente] = useState(false);
+  interface Combinacion {
+    name: string;
+    tipo: string;
+    valor: number;
+    cantidad: number;
+  }
   interface FormularioCupon {
     titulo: string;
     descripcion: string;
@@ -33,13 +37,14 @@ const FormCuponPage: React.FC = () => {
     proveedores: any[];
     productos: any[];
     productosExcluidos: any[];
-    combinaciones: any[];
+    combinaciones: Combinacion[];
     combinada: boolean;
     cantidadProductos: number;
     legal: string;
     formatoLogo: string;
     logo: File | null;
   }
+
   const [formulario, setFormulario] = useState<FormularioCupon>({
     titulo: "",
     descripcion: "",
@@ -132,12 +137,12 @@ const FormCuponPage: React.FC = () => {
             <InputText id="titulo" value={formulario.titulo}
               onChange={(e) => handleInputChange("titulo", e.target.value)}
               placeholder="Ingrese el título"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            />
           </div>
           {/*Ambiente */}
           <div className="flex flex-col gap-2 ">
             <label htmlFor="" className="font-semibold">Tipo de Ambiente</label>
-            <div className="flex gap-4">
+            <div className="flex gap-3 items-center">
               <Checkbox
                 inputId="pruebas"
                 value="Pruebas"
@@ -164,7 +169,7 @@ const FormCuponPage: React.FC = () => {
           </div>
           <div className="md:col-span-2 flex flex-col gap-2 ">
             <label htmlFor="" className="font-semibold">Con Datos</label>
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               <Checkbox
                 inputId="factura"
                 value="permiteFactura"
@@ -207,14 +212,13 @@ const FormCuponPage: React.FC = () => {
           {/* Tipo de Aplicación */}
           <div className="flex flex-col gap-2">
             <label htmlFor="tipoAplicacion" className="font-semibold">Tipo de Aplicación</label>
-            <div className="flex gap-4">
-              <div className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <div className="flex gap-3">
+              <div className="flex items-center gap-2 ">
                 <Checkbox
                   inputId="general"
                   value="General"
                   onChange={(e) => handleCheckboxArrayChange("tipoAplicacion", e.value, e.checked ?? false)}
                   checked={formulario.tipoAplicacion.includes("General")}
-                  className=" border border-black "
                 />
                 <label htmlFor="general">General</label>
               </div>
@@ -347,30 +351,23 @@ const FormCuponPage: React.FC = () => {
             Tabla combinaciones
           </label>
           <div className="card col-span-2">
-            <div className="flex 
-           mb-2">
-              <Button
-                raised
-                icon="pi pi-plus"
-                label="Agregar"
-                className="p-button-success mt-3 p-3"
-                onClick={() => alert('Agregar nueva combinación')}
-              />
-
-            </div>
-            <DataTable
-              value={formulario.combinaciones}
-              stripedRows
-              paginator
-              rows={3}
-              rowsPerPageOptions={[5, 10, 25, 50]}
-              tableStyle={{ minWidth: '75rem' }}
-            >
-              <Column field="name" header="Producto" style={{ width: '50%' }}></Column>
-              <Column field="tipo" header="Tipo" style={{ width: '25%' }}></Column>
-              <Column field="valor" header="Valor" style={{ width: '10%' }}></Column>
-              <Column field="cantidad" header="Cantidad" style={{ width: '10%' }}></Column>
-            </DataTable>
+            <TableCombinacionesComponent
+              combinaciones={formulario.combinaciones}
+              setCombinaciones={(combinaciones) =>
+                setFormulario((prev) => ({ ...prev, combinaciones }))}
+              onEdit={(combinacion, index) => {
+                const updatedCombinaciones = [...formulario.combinaciones];
+                updatedCombinaciones[index] = combinacion;
+                setFormulario((prev) => ({ ...prev, combinaciones: updatedCombinaciones }));
+              }
+              }
+              onDelete={(index) => {
+                const updatedCombinaciones = [...formulario.combinaciones];
+                updatedCombinaciones.splice(index, 1);
+                setFormulario((prev) => ({ ...prev, combinaciones: updatedCombinaciones }));
+              }
+              }
+            />
           </div>
         </div>
         {/* Indicador de combinación */}
@@ -405,7 +402,7 @@ const FormCuponPage: React.FC = () => {
               />
               <label htmlFor={formato.id} className="ml-2">{formato.label}</label>
 
-              {formatoLogo === formato.id && (
+              {formulario.formatoLogo === formato.id && (
                 <div className="mt-4 flex flex-col gap-2 text-left">
                   {/* <label className="font-semibold mb-1">Mostrar datos del cliente en el ticket:</label> */}
                   <div className="flex flex-col gap-1">
@@ -469,8 +466,8 @@ const FormCuponPage: React.FC = () => {
         </div>
       </section>
       <div className="md:col-span-2 flex justify-end mt-6 space-x-4">
-        <Button label="Guardar" onClick={handleSubmit} raised icon="pi pi-check" className="p-button-success p-4" />
-        <Button label="Cancelar" raised icon="pi pi-close" className="p-button-danger p-4" />
+        <Button label="Guardar" onClick={handleSubmit} raised icon="pi pi-check" className="p-button-success p-4 bg-green-600 text-white" />
+        <Button label="Cancelar" raised icon="pi pi-close" className="p-button-danger p-4 bg-red-700 text-white" />
       </div>
     </div>
 
