@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { InputText } from "primereact/inputtext";
 import { InputTextarea } from "primereact/inputtextarea";
 import { Calendar } from "primereact/calendar";
-import { Checkbox } from "primereact/checkbox";
+import { Checkbox, type CheckboxChangeEvent } from "primereact/checkbox";
 import { MultiSelect } from "primereact/multiselect";
 import Dropdown from "../components/MultiselectComponent";
 import { FileUpload } from "primereact/fileupload";
@@ -10,9 +10,12 @@ import { Button } from "primereact/button";
 import { RadioButton } from 'primereact/radiobutton';
 import { InputNumber } from 'primereact/inputnumber';
 import TableCombinacionesComponent from "../components/TableCombinacionesComponent";
+import { Toast } from 'primereact/toast';
+import { useRef } from 'react';
 
 
 const FormCuponPage: React.FC = () => {
+  const toast = useRef<Toast>(null);
   const [descripcionTicket, setDescripcionTicket] = useState("");
   const [checkedDatosCliente, setCheckedDatosCliente] = useState(false);
   interface Combinacion {
@@ -38,7 +41,7 @@ const FormCuponPage: React.FC = () => {
     productos: any[];
     productosExcluidos: any[];
     combinaciones: Combinacion[];
-    combinada: boolean;
+    
     cantidadProductos: number;
     legal: string;
     formatoLogo: string;
@@ -62,13 +65,11 @@ const FormCuponPage: React.FC = () => {
     productos: [],
     productosExcluidos: [],
     combinaciones: [],
-    combinada: false,
     cantidadProductos: 0,
     legal: "",
     formatoLogo: 'formato1',
     logo: null
   });
-
   const handleInputChange = <K extends keyof FormularioCupon>(
     field: K,
     value: FormularioCupon[K]
@@ -84,17 +85,22 @@ const FormCuponPage: React.FC = () => {
     checked ? current.add(value) : current.delete(value);
     setFormulario((prev) => ({ ...prev, [field]: Array.from(current) as FormularioCupon[K] }));
   };
-  const handleSubmit = () => {
-    // Validaciones mínimas
-    if (!formulario.titulo || !formulario.descripcion) {
-      alert("Por favor, completa los campos obligatorios.");
-      return;
-    }
+  const handleSubmit = (e?: React.FormEvent) => {
+  e?.preventDefault(); 
 
-    console.log("Formulario a enviar:", formulario);
+  if (!formulario.titulo.trim()) {
+    toast.current?.show({
+      severity: "error",
+      summary: "Campo obligatorio",
+      detail: "El título del cupón es obligatorio.",
+      life: 3000
+    });
+    return;
+  }
 
-    // Aquí enviarías por fetch/Axios o lo convertirías a XML
-  };
+  
+  console.log("Formulario a enviar:", formulario);
+};
 
   const locales = [
     { name: "Moderna", establecimiento: "055" }, { name: "Alborada" }, { name: "Av. Francisco de Orellana" }, { name: "Gómez Rendón" }, { name: "Piazza Samborondón" }
@@ -119,9 +125,10 @@ const FormCuponPage: React.FC = () => {
     { id: 'sinformato', imagen: '/img/formato4.png', label: 'Sin Formato' },
   ];
 
-
+ 
   return (
-    <div className="  mx-auto p-6 space-y-6">
+     <div className="  mx-auto p-6 space-y-6">
+      <Toast ref={toast} position="top-right" />
       <h1 className="text-center text-2xl font-bold mb-6 bg-[#9b0e0e] text-white p-4">
         Administrador de Promociones - Cupones
       </h1>
@@ -137,7 +144,7 @@ const FormCuponPage: React.FC = () => {
             <InputText id="titulo" value={formulario.titulo}
               onChange={(e) => handleInputChange("titulo", e.target.value)}
               placeholder="Ingrese el título"
-            />
+/>
           </div>
           {/*Ambiente */}
           <div className="flex flex-col gap-2 ">
@@ -253,16 +260,22 @@ const FormCuponPage: React.FC = () => {
             <div className="flex gap-6">
               <div className="flex items-center gap-2">
                 <Checkbox
+                inputId="criterio-1"
                   value="1"
-                  onChange={(e) => handleCheckboxArrayChange("criterio", "1", e.value, e.checked)}
+                  onChange={(e: CheckboxChangeEvent) =>
+                    handleCheckboxArrayChange("criterio", "1", !!e.checked)
+                  }
                   checked={formulario.criterio.includes("1")}
                 />
                 <label>Recurrente por cada valor</label>
               </div>
               <div className="flex items-center gap-2">
                 <Checkbox
+                 inputId="criterio-2"
                   value="2"
-                  onChange={(e) => handleCheckboxArrayChange("criterio", "2", e.value, e.checked)}
+                  onChange={(e: CheckboxChangeEvent) =>
+                    handleCheckboxArrayChange("criterio", "2", !!e.checked)
+                  }
                   checked={formulario.criterio.includes("2")}
                 />
                 <label>Mínimo de valor de compra</label>
@@ -469,8 +482,7 @@ const FormCuponPage: React.FC = () => {
         <Button label="Guardar" onClick={handleSubmit} raised icon="pi pi-check" className="p-button-success p-4 bg-green-600 text-white" />
         <Button label="Cancelar" raised icon="pi pi-close" className="p-button-danger p-4 bg-red-700 text-white" />
       </div>
-    </div>
-
+    </div>   
   );
 };
 
