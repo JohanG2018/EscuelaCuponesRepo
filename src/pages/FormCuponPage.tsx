@@ -1,25 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { InputText } from "primereact/inputtext";
 import { InputTextarea } from "primereact/inputtextarea";
 import { Calendar } from "primereact/calendar";
-import { Checkbox, type CheckboxChangeEvent } from "primereact/checkbox";
+import { Checkbox } from "primereact/checkbox";
 import { MultiSelect } from "primereact/multiselect";
 import Dropdown from "../components/MultiselectComponent";
 import { FileUpload } from "primereact/fileupload";
 import { Button } from "primereact/button";
 import { RadioButton } from 'primereact/radiobutton';
 import { InputNumber } from 'primereact/inputnumber';
-import TableCombinacionesComponent from "../components/TableCombinacionesComponent";
 import { Toast } from 'primereact/toast';
 import { useRef } from 'react';
-
+import TableCombinacionesComponent, { type TipoCombinacion } from "../components/TableCombinacionesComponent";
 
 const FormCuponPage: React.FC = () => {
   const toast = useRef<Toast>(null);
   const [descripcionTicket, setDescripcionTicket] = useState("");
   const [checkedDatosCliente, setCheckedDatosCliente] = useState(false);
   interface Combinacion {
-    name: string;
+    key: string; // único (formato recomendado: `${tipo}:${nombre}`)
+    nombre: string;
     tipo: string;
     valor: number;
     cantidad: number;
@@ -30,10 +30,10 @@ const FormCuponPage: React.FC = () => {
     factura: boolean;
     fechaInicio: Date | null;
     fechaFin: Date | null;
-    tipoAplicacion: string[];
-    tipoAmbiente: string[];
+    tipoAplicacion: string;
+    tipoAmbiente: string;
     valorMinimo: number;
-    criterio: string[];
+    criterio: string;
     locales: any[];
     categorias: any[];
     subcategorias: any[];
@@ -41,12 +41,14 @@ const FormCuponPage: React.FC = () => {
     productos: any[];
     productosExcluidos: any[];
     combinaciones: Combinacion[];
-    
+
     cantidadProductos: number;
     legal: string;
     formatoLogo: string;
     logo: File | null;
   }
+
+  const [combinaciones, setCombinaciones] = useState<Combinacion[]>([]);
 
   const [formulario, setFormulario] = useState<FormularioCupon>({
     titulo: "",
@@ -54,10 +56,10 @@ const FormCuponPage: React.FC = () => {
     factura: false,
     fechaInicio: null,
     fechaFin: null,
-    tipoAplicacion: [],
-    tipoAmbiente: [],
+    tipoAplicacion: "",
+    tipoAmbiente: "",
     valorMinimo: 0,
-    criterio: [],
+    criterio: "",
     locales: [],
     categorias: [],
     subcategorias: [],
@@ -70,13 +72,23 @@ const FormCuponPage: React.FC = () => {
     formatoLogo: 'formato1',
     logo: null
   });
+  const subcatDisabled =
+    !Array.isArray(formulario.categorias) || formulario.categorias.length === 0;
+
+  useEffect(() => {
+    // si no hay categorías, limpia subcategorías para evitar basura
+    if (subcatDisabled && Array.isArray(formulario.subcategorias) && formulario.subcategorias.length) {
+      handleInputChange("subcategorias", []);
+    }
+  }, [subcatDisabled]);
+
   const handleInputChange = <K extends keyof FormularioCupon>(
     field: K,
     value: FormularioCupon[K]
   ) => {
     setFormulario((prev) => ({ ...prev, [field]: value }));
   };
-  const handleCheckboxArrayChange = <K extends keyof FormularioCupon>(
+  /*const handleCheckboxArrayChange = <K extends keyof FormularioCupon>(
     field: K,
     value: string,
     checked: boolean
@@ -84,24 +96,84 @@ const FormCuponPage: React.FC = () => {
     const current = new Set(formulario[field] as string[]);
     checked ? current.add(value) : current.delete(value);
     setFormulario((prev) => ({ ...prev, [field]: Array.from(current) as FormularioCupon[K] }));
-  };
+  };*/
   const handleSubmit = (e?: React.FormEvent) => {
-  e?.preventDefault(); 
+    e?.preventDefault();
 
-  if (!formulario.titulo.trim()) {
-    toast.current?.show({
-      severity: "error",
-      summary: "Campo obligatorio",
-      detail: "El título del cupón es obligatorio.",
-      life: 3000
+    if (!formulario.titulo.trim()) {
+      toast.current?.show({
+        severity: "error",
+        summary: "Campo obligatorio",
+        detail: "El título del cupón es obligatorio.",
+        life: 3000
+      });
+      return;
+    }
+    console.log("Formulario a enviar:", formulario);
+  };
+  // Convierte cualquier valor a array (para soportar selección simple o múltiple)
+  const toArray = (v: any) => Array.isArray(v) ? v : (v ? [v] : []);
+
+  // Obtiene el nombre correcto del item (si es string o si es objeto con "name")
+  const getName = (item: any) => typeof item === "string" ? item : (item?.name ?? String(item));
+
+  // Construye las filas para la tabla
+  const buildRows = (items: any[], tipo: TipoCombinacion): Combinacion[] =>
+    toArray(items).map((it: any) => {
+      const nombre = getName(it);
+      return {
+        key: `${tipo}:${nombre}`, // clave única
+        nombre,
+        tipo,
+        cantidad: 1,
+        valor: 0,
+      };
     });
-    return;
-  }
+  const removeByName = (arr: any[], nombre: string) =>
+    (arr || []).filter((item) => {
+      if (typeof item === "string") return item !== nombre;
+      if (item?.name) return item.name !== nombre;
+      if (item?.label) return item.label !== nombre;
+      return true;
+    });
 
-  
-  console.log("Formulario a enviar:", formulario);
-};
+  const onRowDeleteFromSelectors = (row: Combinacion) => {
+    switch (row.tipo) {
+      case "Categoria":
+        handleInputChange("categorias", removeByName(formulario.categorias, row.nombre));
+        // (opcional) si tu lógica lo requiere, limpia subcategorías dependientes:
+        // handleInputChange("subcategorias", []);
+        break;
+      case "Subcategoria":
+        handleInputChange("subcategorias", removeByName(formulario.subcategorias, row.nombre));
+        break;
+      case "Proveedor":
+        handleInputChange("proveedores", removeByName(formulario.proveedores, row.nombre));
+        break;
+      case "Producto":
+        handleInputChange("productos", removeByName(formulario.productos, row.nombre));
+        break;
+    }
+  };
+  const onAgregarSeleccionados = () => {
+    const nuevas = [
+      ...buildRows(formulario.categorias, "Categoria"),
+      ...buildRows(formulario.subcategorias, "Subcategoria"),
+      ...buildRows(formulario.proveedores, "Proveedor"),
+      ...buildRows(formulario.productos, "Producto"),
+    ];
 
+    const map = new Map(combinaciones.map(c => [c.key, c])); // evitar duplicados
+    for (const f of nuevas) {
+      if (!map.has(f.key)) {
+        map.set(f.key, f);
+      }
+    }
+
+    const merged = Array.from(map.values());
+    setCombinaciones(merged);
+    handleInputChange("combinaciones", merged as any); // para guardar en el formulario
+  };
   const locales = [
     { name: "Moderna", establecimiento: "055" }, { name: "Alborada" }, { name: "Av. Francisco de Orellana" }, { name: "Gómez Rendón" }, { name: "Piazza Samborondón" }
   ];
@@ -125,9 +197,9 @@ const FormCuponPage: React.FC = () => {
     { id: 'sinformato', imagen: '/img/formato4.png', label: 'Sin Formato' },
   ];
 
- 
+
   return (
-     <div className="  mx-auto p-6 space-y-6">
+    <div className="  mx-auto p-6 space-y-6">
       <Toast ref={toast} position="top-right" />
       <h1 className="text-center text-2xl font-bold mb-6 bg-[#9b0e0e] text-white p-4">
         Administrador de Promociones - Cupones
@@ -144,24 +216,28 @@ const FormCuponPage: React.FC = () => {
             <InputText id="titulo" value={formulario.titulo}
               onChange={(e) => handleInputChange("titulo", e.target.value)}
               placeholder="Ingrese el título"
-/>
+            />
           </div>
           {/*Ambiente */}
           <div className="flex flex-col gap-2 ">
             <label htmlFor="" className="font-semibold">Tipo de Ambiente</label>
             <div className="flex gap-3 items-center">
-              <Checkbox
-                inputId="pruebas"
+              <RadioButton
+                inputId="ambiente-pruebas"
+                name="tipoAmbiente"
                 value="Pruebas"
-                onChange={(e) => handleCheckboxArrayChange('tipoAmbiente', e.value, e.checked ?? false)}
-                checked={formulario.tipoAmbiente.includes("Pruebas")} />
-              <label htmlFor="prueba">Pruebas</label>
-              <Checkbox
-                inputId="produccion"
+                onChange={(e) => handleInputChange("tipoAmbiente", e.value)}
+                checked={formulario.tipoAmbiente === "Pruebas"}
+              />
+              <label htmlFor="ambiente-pruebas">Pruebas</label>
+              <RadioButton
+                inputId="ambiente-produccion"
+                name="tipoAmbiente"
                 value="Produccion"
-                onChange={(e) => handleCheckboxArrayChange('tipoAmbiente', e.value, e.checked ?? false)}
-                checked={formulario.tipoAmbiente.includes("Produccion")} />
-              <label htmlFor="produccion">Producción</label>
+                onChange={(e) => handleInputChange("tipoAmbiente", e.value)}
+                checked={formulario.tipoAmbiente === "Produccion"}
+              />
+              <label htmlFor="ambiente-produccion">Producción</label>
             </div>
           </div>
           {/* Descripción General*/}
@@ -192,10 +268,11 @@ const FormCuponPage: React.FC = () => {
               id="fechaInicio"
               value={formulario.fechaInicio}
               onChange={(e) => handleInputChange('fechaInicio', e.value as Date)}
+              hourFormat="24"
+              showTime
               showIcon
-              placeholder="Seleccione una fecha"
+              placeholder="Seleccione una fecha y una hora"
               className="w-full border border-gray-300 rounded-md px-3 py-2"
-
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -204,8 +281,10 @@ const FormCuponPage: React.FC = () => {
               id="fechaFin"
               value={formulario.fechaFin}
               onChange={(e) => handleInputChange('fechaFin', e.value as Date)}
+              showTime
+              hourFormat="24"
               showIcon
-              placeholder="Seleccione una fecha"
+              placeholder="Seleccione una fecha y una hora"
               className=" border border-gray-300 rounded-md px-3 py-2"
             />
           </div>
@@ -220,23 +299,28 @@ const FormCuponPage: React.FC = () => {
           <div className="flex flex-col gap-2">
             <label htmlFor="tipoAplicacion" className="font-semibold">Tipo de Aplicación</label>
             <div className="flex gap-3">
-              <div className="flex items-center gap-2 ">
-                <Checkbox
-                  inputId="general"
-                  value="General"
-                  onChange={(e) => handleCheckboxArrayChange("tipoAplicacion", e.value, e.checked ?? false)}
-                  checked={formulario.tipoAplicacion.includes("General")}
-                />
-                <label htmlFor="general">General</label>
+              <div className="flex gap-6">
+                <div className="flex items-center gap-2">
+                  <RadioButton
+                    inputId="apli-general"
+                    name="tipoAplicacion"
+                    value="General"
+                    onChange={(e) => handleInputChange("tipoAplicacion", e.value)}
+                    checked={formulario.tipoAplicacion === "General"}
+                  />
+                  <label htmlFor="apli-general">General</label>
+                </div>
               </div>
+
               <div className="flex items-center gap-2">
-                <Checkbox
-                  inputId="mecanica"
+                <RadioButton
+                  inputId="apli-mecanica"
+                  name="tipoAplicacion"
                   value="Por mecánica"
-                  onChange={(e) => handleCheckboxArrayChange("tipoAplicacion", e.value, e.checked ?? false)}
-                  checked={formulario.tipoAplicacion.includes("Por mecánica")}
+                  onChange={(e) => handleInputChange("tipoAplicacion", e.value)}
+                  checked={formulario.tipoAplicacion === "Por mecánica"}
                 />
-                <label htmlFor="mecanica">Por mecánica</label>
+                <label htmlFor="apli-mecanica">Por mecánica</label>
               </div>
             </div>
           </div>
@@ -259,26 +343,24 @@ const FormCuponPage: React.FC = () => {
             <label htmlFor="Criterio de Compra" className="font-semibold">Criterio de Compra</label>
             <div className="flex gap-6">
               <div className="flex items-center gap-2">
-                <Checkbox
-                inputId="criterio-1"
+                <RadioButton
+                  inputId="criterio-1"
+                  name="criterio" // el mismo name para que sean parte del mismo grupo
                   value="1"
-                  onChange={(e: CheckboxChangeEvent) =>
-                    handleCheckboxArrayChange("criterio", "1", !!e.checked)
-                  }
-                  checked={formulario.criterio.includes("1")}
+                  onChange={(e) => handleInputChange("criterio", e.value)}
+                  checked={formulario.criterio === "1"}
                 />
-                <label>Recurrente por cada valor</label>
+                <label htmlFor="criterio-1">Recurrente por cada valor</label>
               </div>
               <div className="flex items-center gap-2">
-                <Checkbox
-                 inputId="criterio-2"
+                <RadioButton
+                  inputId="criterio-2"
+                  name="criterio"
                   value="2"
-                  onChange={(e: CheckboxChangeEvent) =>
-                    handleCheckboxArrayChange("criterio", "2", !!e.checked)
-                  }
-                  checked={formulario.criterio.includes("2")}
+                  onChange={(e) => handleInputChange("criterio", e.value)}
+                  checked={formulario.criterio === "2"}
                 />
-                <label>Mínimo de valor de compra</label>
+                <label htmlFor="criterio-2">Mínimo de valor de compra</label>
               </div>
             </div>
           </div>
@@ -323,6 +405,7 @@ const FormCuponPage: React.FC = () => {
               onChange={(e) => handleInputChange("subcategorias", e.value)}
               placeholder="Seleccione una o varias subcategorías"
               name="subcategorias"
+
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -359,28 +442,30 @@ const FormCuponPage: React.FC = () => {
             name="productosExcluidos"
           />
         </div>
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 pt-5">
           <label htmlFor="combinaciones" className="font-semibold">
             Tabla combinaciones
           </label>
-          <div className="card col-span-2">
-            <TableCombinacionesComponent
-              combinaciones={formulario.combinaciones}
-              setCombinaciones={(combinaciones) =>
-                setFormulario((prev) => ({ ...prev, combinaciones }))}
-              onEdit={(combinacion, index) => {
-                const updatedCombinaciones = [...formulario.combinaciones];
-                updatedCombinaciones[index] = combinacion;
-                setFormulario((prev) => ({ ...prev, combinaciones: updatedCombinaciones }));
-              }
-              }
-              onDelete={(index) => {
-                const updatedCombinaciones = [...formulario.combinaciones];
-                updatedCombinaciones.splice(index, 1);
-                setFormulario((prev) => ({ ...prev, combinaciones: updatedCombinaciones }));
-              }
-              }
+          <div className="flex justify-end">
+            <Button
+              label="Agregar"
+              icon="pi pi-plus"
+              className="p-button-success p-2 bg-green-600 text-white hover:bg-green-700"
+              raised
+              onClick={onAgregarSeleccionados}
             />
+          </div>
+          <TableCombinacionesComponent
+            combinaciones={combinaciones}
+            setCombinaciones={(rows) => {
+              setCombinaciones(rows);
+              handleInputChange("combinaciones", rows as any);
+            }}
+            onRowDelete={onRowDeleteFromSelectors}  
+          />
+
+          <div className="card col-span-2">
+
           </div>
         </div>
         {/* Indicador de combinación */}
@@ -435,7 +520,7 @@ const FormCuponPage: React.FC = () => {
           ))}
         </div>
         {/* Descripción del ticket */}
-        <div className="md:col-span-2 flex flex-col gap-2">
+        <div className="md:col-span-2 flex flex-col gap-2 pt-4">
           <label className="font-semibold" htmlFor="descripcion"> Descripción del ticket</label>
           <InputTextarea id="descripcion" value={descripcionTicket} onChange={(e) => setDescripcionTicket(e.target.value)} rows={3} autoResize placeholder="Ingrese el texto que aparecerá en el ticket"
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
@@ -480,9 +565,9 @@ const FormCuponPage: React.FC = () => {
       </section>
       <div className="md:col-span-2 flex justify-end mt-6 space-x-4">
         <Button label="Guardar" onClick={handleSubmit} raised icon="pi pi-check" className="p-button-success p-4 bg-green-600 text-white" />
-        <Button label="Cancelar" raised icon="pi pi-close" className="p-button-danger p-4 bg-red-700 text-white" />
+        <Button label="Cancelar" raised icon="pi pi-save" className="p-button-warning p-4 bg-red-600 text-white" />
       </div>
-    </div>   
+    </div>
   );
 };
 

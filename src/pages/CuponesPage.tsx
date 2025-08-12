@@ -14,7 +14,7 @@ const CuponesPage: React.FC = () => {
   useEffect(() => {
     const fetchCoupons = async () => {
       try {
-        const response = await fetch('http://localhost/appdelportal/wp-json/delportal/v1/listado_cupones/xml');
+        const response = await fetch('http://localhost:8080/wordpress/wp-json/delportal/v1/listado_cupones/xml');
         const xmlText = await response.text();
         // Convertir XML a JSON (usando DOMParser)
         const parser = new DOMParser();
@@ -24,9 +24,13 @@ const CuponesPage: React.FC = () => {
           id: parseInt(item.getElementsByTagName('id')[0].textContent ?? "0"),
           titulo: item.getElementsByTagName('title')[0].textContent ?? "",
           //estado: "activo",
+            estado: item.getElementsByTagName('status')[0]?.textContent ?? "activo", // <-- cambia según tu XML real
+
           fechaInicio: item.getElementsByTagName('startDate')[0].textContent ?? "",
           fechaFin: item.getElementsByTagName('endDate')[0].textContent ?? "",
           //tipoAplicacion: item.getElementsByTagName('applicationType')[0].textContent ?? "",
+            tipoAplicacion: item.getElementsByTagName('applicationType')[0]?.textContent ?? "General",
+
         }));
         setCoupons(data);
         console.log("Cupones:", data);
@@ -39,61 +43,7 @@ const CuponesPage: React.FC = () => {
 
     fetchCoupons();
   }, []);
-  // const [cupones, setCupones] = useState<Cupon[]>([
-  //   {
-  //     id: 1,
-  //     index: 1,
-  //     titulo: "Descuento del 20%",
-  //     estado: "activo",
-  //     fechaInicio: "2023-10-01",
-  //     fechaFin: "2023-10-31",
-  //     tipoAplicacion: "General"
-  //   },
-  //   {
-  //     id: 2,
-  //     index: 2,
-  //     titulo: "Compra 1 y lleva 1 gratis",
-  //     estado: "inactivo",
-  //     fechaInicio: "2023-11-01",
-  //     fechaFin: "2023-11-30",
-  //     tipoAplicacion: "por mecanica"
-  //   },
-  //   {
-  //     id: 2,
-  //     index: 3,
-  //     titulo: "Compra 1 y lleva 1 gratis",
-  //     estado: "inactivo",
-  //     fechaInicio: "2023-11-01",
-  //     fechaFin: "2023-11-30",
-  //     tipoAplicacion: "por mecanica"
-  //   }, {
-  //     id: 2,
-  //     index: 4,
-  //     titulo: "Compra 1 y lleva 1 gratis",
-  //     estado: "inactivo",
-  //     fechaInicio: "2023-11-01",
-  //     fechaFin: "2023-11-30",
-  //     tipoAplicacion: "por mecanica"
-  //   },
-  //   {
-  //     id: 2,
-  //     index: 5,
-  //     titulo: "Compra 1 y lleva 1 gratis",
-  //     estado: "inactivo",
-  //     fechaInicio: "2023-11-01",
-  //     fechaFin: "2023-11-30",
-  //     tipoAplicacion: "por mecanica"
-  //   },
-  //   {
-  //     id: 2,
-  //     index: 6,
-  //     titulo: "Compra 1 y lleva 1 gratis",
-  //     estado: "inactivo",
-  //     fechaInicio: "2023-11-01",
-  //     fechaFin: "2023-11-30",
-  //     tipoAplicacion: "por mecanica"
-  //   },
-  // ]);
+
   const onCrear = () => {
     navigate('/crear');
   };
@@ -107,7 +57,18 @@ const CuponesPage: React.FC = () => {
       setCoupons(prev => prev.filter(c => c.id !== cupon.id));
     }
   };
-
+  const onToggleEstado = (cupon: Cupon) => {
+    setCoupons(prev =>
+      prev.map(c => {
+        if (c.id === cupon.id) {
+          // Intercambia entre activo e inactivo
+          const nuevoEstado = cupon.estado === 'activo' ? 'inactivo' : 'activo';
+          return { ...c, estado: nuevoEstado };
+        }
+        return c;
+      })
+    );
+  };
   return (
     <>
       <div className="">
@@ -117,7 +78,7 @@ const CuponesPage: React.FC = () => {
           <Button label="Crear cupón" icon="pi pi-plus" raised className="bg-[#ff2c2c] text-white p-2 hover:bg-[#8b1f1f]" onClick={onCrear} />
         </div>
         <div className="m-5">
-          <CuponesTable cupones={coupons} onEdit={onEditar} onStatus={onEliminar} />
+          <CuponesTable cupones={coupons} onEdit={onEditar} onEliminar={onEliminar}  onToggleStatus={onToggleEstado} />
         </div>
       </div>
     </>
