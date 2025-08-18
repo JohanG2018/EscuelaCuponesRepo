@@ -4,7 +4,7 @@ import { Button } from "primereact/button";
 import { InputNumber } from "primereact/inputnumber";
 import { Checkbox } from "primereact/checkbox";
 
-export type TipoCombinacion = "Categoria" | "Subcategoria" | "Proveedor" | "Producto";
+export type TipoCombinacion = "G" | "SG" | "P" | "I" | "M";
 
 export interface Combinacion {
   key: string;
@@ -13,12 +13,12 @@ export interface Combinacion {
   cantidad: number;
   valor: number;
   combinada: boolean;
-  excluida: boolean; 
+  excluida: boolean;
 }
 
 interface Props {
   combinaciones: Combinacion[];
-  setCombinaciones: (rows: Combinacion[] | ((prev:Combinacion[])=>Combinacion[])) => void;
+  setCombinaciones: (rows: Combinacion[]) => void;
   currency?: string;
   locale?: string;
   onRowDelete?: (row: Combinacion) => void;
@@ -31,72 +31,55 @@ export default function TableCombinacionesComponent({
   locale = "es-EC",
   onRowDelete
 }: Props) {
-  // ---------- helpers de actualización ----------
+  // Función genérica para actualizar un campo de una fila
+  const updateField = (rowKey: string, field: keyof Combinacion, value: any) => {
+    const actualizado = combinaciones.map((r) =>
+      r.key === rowKey ? { ...r, [field]: value } : r
+    );
+    setCombinaciones(actualizado);
+  };
 
-  const onChangeCantidad = (rowKey: string, cantidad: number) => {
-  setCombinaciones((prev) =>
-    prev.map((r) => (r.key === rowKey ? { ...r, cantidad } : r))
-  );
-};
+  const onDelete = (row: Combinacion) => {
+    const nuevo = combinaciones.filter((r) => r.key !== row.key);
+    setCombinaciones(nuevo);
+    onRowDelete?.(row);
+  };
 
-const onChangeValor = (rowKey: string, valor: number) => {
-  setCombinaciones((prev) =>
-    prev.map((r) => (r.key === rowKey ? { ...r, valor } : r))
-  );
-};
-
-const onChangeCombinada = (rowKey: string, checked: boolean) => {
-  setCombinaciones((prev) =>
-    prev.map((r) => (r.key === rowKey ? { ...r, combinada: checked } : r))
-  );
-};
-
-const onChangeExcluida = (rowKey: string, checked: boolean) => {
-  setCombinaciones((prev) =>
-    prev.map((r) => (r.key === rowKey ? { ...r, excluida: checked } : r))
-  );
-};
-
-const onDelete = (row: Combinacion) => {
-  setCombinaciones((prev) => prev.filter((r) => r.key !== row.key));
-  onRowDelete?.(row);
-};
-
-
+  // Templates de las columnas
   const cantidadBody = (row: Combinacion) => (
-  <InputNumber
-    value={typeof row.cantidad === "number" ? row.cantidad : 0}
-    onValueChange={(e) => onChangeCantidad(row.key, e.value ?? 0)}
-    showButtons
-    min={0}
-    inputClassName="w-24"
-  />
-)
+    <InputNumber
+      value={row.cantidad ?? null}
+      onValueChange={(e) => updateField(row.key, "cantidad", e.value ?? 0)}
+      showButtons
+      min={0}
+      inputClassName="w-24"
+    />
+  );
+
   const valorBody = (row: Combinacion) => (
-  <InputNumber
-    value={typeof row.valor === "number" ? row.valor : 0}
-    onValueChange={(e) => onChangeValor(row.key, e.value ?? 0)}
-    mode="currency"
-    currency={currency}
-    locale={locale}
-    inputClassName="w-36"
-  />
-)
+    <InputNumber
+      value={row.valor ?? null}
+      onValueChange={(e) => updateField(row.key, "valor", e.value ?? 0)}
+      mode="currency"
+      currency={currency}
+      locale={locale}
+      inputClassName="w-36"
+    />
+  );
 
-const combinadaBody = (row: Combinacion) => (
-  <Checkbox
-    checked={!!row.combinada}
-    onChange={(e: any) => onChangeCombinada(row.key, !!e.checked)}
-  />
-);
+  const combinadaBody = (row: Combinacion) => (
+    <Checkbox
+      checked={!!row.combinada}
+      onChange={(e) => updateField(row.key, "combinada", !!e.checked)}
+    />
+  );
 
-const excluidaBody = (row: Combinacion) => (
-  <Checkbox
-    checked={!!row.excluida}
-    onChange={(e: any) => onChangeExcluida(row.key, !!e.checked)}
-  />
-);
-
+  const excluidaBody = (row: Combinacion) => (
+    <Checkbox
+      checked={!!row.excluida}
+      onChange={(e) => updateField(row.key, "excluida", !!e.checked)}
+    />
+  );
 
   const accionesBody = (row: Combinacion) => (
     <Button
@@ -106,8 +89,6 @@ const excluidaBody = (row: Combinacion) => (
       aria-label="Eliminar"
     />
   );
-
-
 
   return (
     <div className="card col-span-2">
@@ -119,7 +100,7 @@ const excluidaBody = (row: Combinacion) => (
         emptyMessage="No hay combinaciones agregadas."
         paginator
         rows={5}
-        rowsPerPageOptions={[5,10,20,25]}
+        rowsPerPageOptions={[5, 10, 20, 25]}
       >
         <Column field="nombre" header="Nombre" style={{ width: "22%" }} />
         <Column field="tipo" header="Tipo" style={{ width: "18%" }} />

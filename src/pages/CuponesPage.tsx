@@ -1,10 +1,12 @@
+// src/pages/CuponesPage.tsx
+
 import React, { useRef, useState, useEffect } from "react";
 import { Button } from "primereact/button";
 import { Toast } from "primereact/toast";
 import { useNavigate } from "react-router-dom";
 import CuponesTable from "../components/CuponesTable";
 import { fetchCupones } from "../service/cupon";
-import type { Cupon } from "../components/CuponesTable";
+import type { Cupon } from "../interface/cuponInterface"; 
 
 const CuponesPage: React.FC = () => {
   const [cupons, setCupons] = useState<Cupon[]>([]);
@@ -54,7 +56,13 @@ const CuponesPage: React.FC = () => {
     setCupons(prev =>
       prev.map(c =>
         c.id === cupon.id
-          ? { ...c, estado: c.estado === "activo" ? "inactivo" : "activo" }
+          ? {
+              ...c,
+              estado:
+                c.estado === "activo" || c.estado === 1
+                  ? "inactivo"
+                  : "activo",
+            }
           : c
       )
     );

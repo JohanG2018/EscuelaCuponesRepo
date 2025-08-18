@@ -1,37 +1,6 @@
+import type { Cupon, Local, Producto, Proveedor, Categoria } from "../interface/cuponInterface";
+
 export const API_BASE = "http://localhost:8080/wordpress/wp-json/delportal/v1";
-export interface Local {
-  id: string | number;
-  local: string;          
-  establecimiento?: string;
-  almacen?: string;
-  nombre?: string;
-}
-
-export interface Producto{
-  id : string | number;
-  title: string;
-  sku?:string;
-}
-export interface Proveedor {
-  id: string;
-  name: string;
-  grupo?: string;
-  alias?: string;
-}
-export interface Cupon {
-  id: string;
-  titulo: string;
-  tipoAplicacion: string;
-  fechaInicio: string; // ISO/SQL string
-  fechaFin: string;    // ISO/SQL string
-  estado: string;      // "1" / "0" o texto
-}
-export function toSqlDateTime(d:Date | null):string{
-  if(!d) return ""
-  const pad = (n:number) =>String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-
-}
 
 export function fileToBase64(file: File | null): Promise<string> {
   return new Promise((resolve) => {
@@ -40,125 +9,132 @@ export function fileToBase64(file: File | null): Promise<string> {
     reader.onload = () => {
       const res = (reader.result as string) || "";
       const comma = res.indexOf(",");
-      resolve(comma >= 0 ? res.substring(comma + 1) : res); // solo el payload
+      resolve(comma >= 0 ? res.substring(comma + 1) : res);
     };
     reader.readAsDataURL(file);
   });
 }
-export async function buildCuponXML(form: {
-  titulo: string;
-  descripcion: string;
-  descripcionTicket: string; // textoCupon
-  textoLegal: string;
-  fechaInicio: Date | null;
-  fechaFin: Date | null;
-  estado: boolean | number | string;
-  tipoAplicacion: string;
-  valorMinimo: number;
-  esRecurrente: boolean | number | string;
-  idTipoFormato: number | string;
-  logo: File | null;
-  nombreLogo: string;
-  tipoAmbiente: string;
-  esConsumidorFinal: boolean | number | string;
-  aplicaLocales: boolean | number | string;
-  combinarCondiciones: boolean | number | string;
-  cantidadProductos: number | string;
-}) {
-  // defaults seguros
-  const start = form.fechaInicio ?? new Date();
-  const end = form.fechaFin ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const ambiente = (form.tipoAmbiente && String(form.tipoAmbiente).trim()) || "Pruebas";
-  const tipoAplicacion = (form.tipoAplicacion && String(form.tipoAplicacion).trim()) || "General";
 
-  const toSql = (d: Date) => {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  };
-
-  const b2 = (v: any) => (v ? "1" : "0"); // a "0"/"1"
+export async function buildCuponXML(formulario: Cupon): Promise<string> {
   const esc = (s: any) =>
     String(s ?? "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
 
-  // logo a base64 “payload” (vacío si no hay)
-  const logoBase64 = await fileToBase64(form.logo);
+  const formatDateTimeToSQL = (date: Date | string): string => {
+  const d = new Date(date);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+};
+  const logoBase64 = await fileToBase64(formulario.logo);
 
-  // ==== IMPORTANTE: formato por NODOS (no atributos) ====
   return `
 <req>
-  <descripcion>${esc(form.descripcion)}</descripcion>
-  <tituloCupon>${esc(form.titulo)}</tituloCupon>
-  <textoCupon>${esc(form.descripcionTicket)}</textoCupon>
-  <textoLegal>${esc(form.textoLegal)}</textoLegal>
-  <fechaInicio>${esc(toSql(start))}</fechaInicio>
-  <fechaFin>${esc(toSql(end))}</fechaFin>
-  <estado>${b2(form.estado)}</estado>
-  <tipoAplicacion>${esc(tipoAplicacion)}</tipoAplicacion>
-  <montoMinimo>${esc(form.valorMinimo ?? 0)}</montoMinimo>
-  <esRecurrente>${b2(form.esRecurrente)}</esRecurrente>
-  <idTipoFormato>${esc(form.idTipoFormato ?? "")}</idTipoFormato>
-  <logo>${esc(logoBase64)}</logo>
-  <nombreLogo>${esc(form.nombreLogo)}</nombreLogo>
-  <ambiente>${esc(ambiente)}</ambiente>
-  <esConsumidorFinal>${b2(form.esConsumidorFinal)}</esConsumidorFinal>
-  <aplicaLocales>${b2(form.aplicaLocales)}</aplicaLocales>
-  <combinarCondiciones>${b2(form.combinarCondiciones)}</combinarCondiciones>
-  <cantidadProductos>${esc(form.cantidadProductos ?? 0)}</cantidadProductos>
-</req>`.trim();
+  <Cabecera>
+    <descripcion>${esc(formulario.descripcion)}</descripcion>
+    <tituloCupon>${esc(formulario.titulo)}</tituloCupon>
+    <textoCupon>${esc(formulario.descripcionTicket)}</textoCupon>
+    <textoLegal>${esc(formulario.textoLegal)}</textoLegal>
+    <fechaInicio>${formatDateTimeToSQL(formulario.fechaInicio!)}</fechaInicio>
+    <fechaFin>${formatDateTimeToSQL(formulario.fechaFin!)}</fechaFin>
+    <estado>${formulario.estado ? 1 : 0}</estado>
+    <tipoAplicacion>${esc(formulario.tipoAplicacion)}</tipoAplicacion>
+    <montoMinimo>${formulario.valorMinimo || 0}</montoMinimo>
+    <esRecurrente>${formulario.esRecurrente ? 1 : 0}</esRecurrente>
+    <idTipoFormato>${esc(formulario.idTipoFormato)}</idTipoFormato>
+    <logo>${esc(logoBase64)}</logo>
+    <nombreLogo>${esc(formulario.nombreLogo)}</nombreLogo>
+    <ambiente>${esc(formulario.tipoAmbiente)}</ambiente>
+    <esConsumidorFinal>${formulario.esConsumidorFinal ? 1 : 0}</esConsumidorFinal>
+    <aplicaLocales>${formulario.locales?.length ? 1 : 0}</aplicaLocales>
+    <combinarCondiciones>${formulario.combinarCondiciones ? 1 : 0}</combinarCondiciones>
+    <cantidadProductos>${formulario.cantidadProductos || 0}</cantidadProductos>
+  </Cabecera>
+  <Detalle>
+    ${Array.isArray(formulario.combinaciones) ? formulario.combinaciones.map((c) => `
+    <Item>
+      <codigoItem>${esc(c.key)}</codigoItem>
+      <nombreItem>${esc(c.nombre)}</nombreItem>
+      <origen>${esc(c.tipo)}</origen>
+      <esExcluido>${formulario.combinarCondiciones ? 1 : 0}</esExcluido>
+      <esCombinado>${formulario.combinarCondiciones ? 1 : 0}</esCombinado>
+      <cantidad>${c.cantidad || 0}</cantidad>
+      <valor>${c.valor || 0}</valor>
+    </Item>`).join(""):""}
+  </Detalle>
+  <Locales>
+    ${(formulario.locales || []).map((l) => `
+    <Local>
+      <establecimiento>${esc(l.establecimiento)}</establecimiento>
+      <almacen>${esc(l.almacen)}</almacen>
+      <activo>1</activo>
+    </Local>`).join("")}
+  </Locales>
+</req>
+`.trim();
 }
+
 function normalizeLocales(raw: any[]): Local[] {
   return raw.map((it: any) => ({
-    id:
-      it.id ??
-      it.almacen ??
-      it.establecimiento ??
-      it.nombre ??
-      it.local ??
-      `${Date.now()}-${Math.random()}`, // fallback estable suficiente para front
+    id: it.id ?? it.almacen ?? it.establecimiento ?? it.nombre ?? it.local ?? `${Date.now()}-${Math.random()}`,
     local: it.local ?? it.nombre ?? String(it.almacen ?? it.establecimiento ?? "Local"),
     establecimiento: it.establecimiento,
     almacen: it.almacen,
     nombre: it.nombre,
   }));
 }
+export async function fetchCupones(opts?: { signal?: AbortSignal }): Promise<Cupon[]> {
+  const res = await fetch(`${API_BASE}/listado_cupones_marketing`, {
+    method: "GET",
+    signal: opts?.signal,
+  });
 
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Error al cargar cupones (${res.status}): ${txt || res.statusText}`);
+  }
+
+  const json = await res.json().catch(() => null);
+  const raw = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
+
+  return raw.map((c: any) => ({
+    id: String(c.id ?? ""),
+    titulo: String(c.titulo ?? ""),
+    tipoAplicacion: String(c.tipoAplicacion ?? ""),
+    fechaInicio: String(c.fechaInicio ?? ""),
+    fechaFin: String(c.fechaFin ?? ""),
+    estado: String(c.estado ?? ""),
+  }));
+}
 export async function postCuponXML(reqXML: string) {
   const res = await fetch(`${API_BASE}/procesar_xml_form`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/xml", // enviamos XML
-      // opcional: "Accept": "application/json"
+      "Content-Type": "application/xml",
     },
     body: reqXML,
-    // NO credentials aquí a menos que configures CORS con credenciales
   });
 
-  // Lee el body una sola vez
   const raw = await res.text();
 
-  // Si viene error, lanza con el texto crudo (útil para ver el detalle del back)
- if (!res.ok) {
-  console.error("[postCuponXML] ERROR:", raw);
-  throw new Error(raw || "Error al procesar el cupón");
-}
+  if (!res.ok) {
+    console.error("[postCuponXML] ERROR:", raw);
+    throw new Error(raw || "Error al procesar el cupón");
+  }
 
-if (!raw || !raw.trim()) {
-  // defensa: servidor respondió 200 sin cuerpo
-  throw new Error("Respuesta vacía del servidor");
-}
+  if (!raw || !raw.trim()) {
+    throw new Error("Respuesta vacía del servidor");
+  }
 
-  // Intenta parsear JSON; si no es JSON, deja el texto
   let payload: any = raw;
   try {
     payload = JSON.parse(raw);
   } catch {
-    // payload queda como string (p.ej. XML del SP)
+    // continúa con raw como string
   }
 
-  // Validar OK del SP si quieres confirmar explícitamente
   const listo =
     payload?.data?.Root?.listo === "OK" ||
     payload?.Root?.listo === "OK" ||
@@ -180,40 +156,46 @@ export async function fetchLocales(like?: string): Promise<Local[]> {
   const url = new URL(`${API_BASE}/listado_locales_marketing`);
   if (like && like.trim()) url.searchParams.set("like", like.trim());
 
-  const res = await fetch(url.toString(), { method: "GET" });
+  const res = await fetch(url.toString());
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
     throw new Error(`Error al cargar locales (${res.status}): ${txt || res.statusText}`);
   }
 
   const json = await res.json().catch(() => null);
-
-  // Acepta array directo o {data: []}
   const raw = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
-  if (!Array.isArray(raw)) return [];
-
   return normalizeLocales(raw);
 }
+
+
+
+
 export async function searchProductos(q: string, limit = 20): Promise<Producto[]> {
   const url = new URL(`${API_BASE}/listado_items_marketing`);
-  url.searchParams.set("q", q);
+  url.searchParams.set("q", q.trim());
   url.searchParams.set("limit", String(limit));
 
   const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`Error buscando productos: ${res.statusText}`);
+
+  if (!res.ok) {
+    throw new Error(`Error buscando productos: ${res.status} ${res.statusText}`);
+  }
+
   const json = await res.json();
 
-  const arr = Array.isArray(json) ? json : [];
-  return arr.map((p: any) => ({
-    id: p.id,
-    title: p.title ?? '',
-    sku: p.sku ?? '',
+  const arr: Producto[] = Array.isArray(json) ? json : [];
+
+  return arr.map((p): Producto => ({
+    itemid: p.itemid ?? "",
+    nombre: p.nombre ?? "",
+    categoria: p.categoria ?? "",
+    subcategoria: p.subcategoria ?? "",
+    proveedor: p.proveedor ?? ""
   }));
 }
-export async function fetchProveedores(): Promise<Proveedor[]> {
-  const url = `${API_BASE}/listado_proveedores_marketing`;
-  const res = await fetch(url, { method: "GET" });
 
+export async function fetchProveedores(): Promise<Proveedor[]> {
+  const res = await fetch(`${API_BASE}/listado_proveedores_marketing`);
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
     throw new Error(`Error al cargar proveedores (${res.status}): ${txt || res.statusText}`);
@@ -221,7 +203,6 @@ export async function fetchProveedores(): Promise<Proveedor[]> {
 
   const json = await res.json().catch(() => null);
   const raw = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
-
   return raw.map((p: any) => ({
     id: String(p.idProveedor ?? p.id ?? ""),
     name: String(p.nombreProveedor ?? p.nombre ?? p.alias ?? "Proveedor"),
@@ -230,29 +211,67 @@ export async function fetchProveedores(): Promise<Proveedor[]> {
   }));
 }
 
+export async function fetchCategorias(like?: string): Promise<Categoria[]> {
+  const url = new URL(`${API_BASE}/listado_categorias_marketing`);
+  if (like && like.trim()) url.searchParams.set("like", like.trim());
 
-export async function fetchCupones(opts?: { signal?: AbortSignal }): Promise<Cupon[]> {
-  const res = await fetch(`${API_BASE}/listado_cupones_marketing`, {
-    method: "GET",
-    signal: opts?.signal,
-  });
-
+  const res = await fetch(url.toString());
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
-    throw new Error(`Error listando cupones (${res.status}): ${txt || res.statusText}`);
+    throw new Error(`Error al cargar categorías (${res.status}): ${txt || res.statusText}`);
   }
 
   const json = await res.json().catch(() => null);
   const raw = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
-  if (!Array.isArray(raw)) return [];
-
-  // Normaliza por si acaso
-  return raw.map((c: any) => ({
-    id: String(c.id ?? ""),
-    titulo: String(c.titulo ?? ""),
-    tipoAplicacion: String(c.tipoAplicacion ?? ""),
-    fechaInicio: String(c.fechaInicio ?? ""),
-    fechaFin: String(c.fechaFin ?? ""),
-    estado: String(c.estado ?? ""),
+  return raw.map((item: any) => ({
+    id: item.codigo || "",
+    name: item.nombre || "",
   }));
 }
+
+export async function fetchSubCategorias(like?: string): Promise<Categoria[]> {
+  const url = new URL(`${API_BASE}/listado_subcategorias_marketing`);
+  if (like && like.trim()) url.searchParams.set("like", like.trim());
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Error al cargar subcategorías (${res.status}): ${txt || res.statusText}`);
+  }
+
+  const json = await res.json().catch(() => null);
+  const raw = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
+  return raw.map((item: any) => ({
+    id: item.codigo || "",
+    name: item.nombre || "",
+  }));
+}
+export async function UpdateCupon(xml: string): Promise<any> {
+  const res = await fetch("http://localhost:8080/wordpress/wp-json/delportal/v1/editar_xml_form", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/xml",
+    },
+    body: xml,
+  });
+
+  const raw = await res.text();
+
+  let payload: any = raw;
+  try {
+    payload = JSON.parse(raw);
+  } catch {}
+
+  const exitoso =
+    payload?.status === "success" ||
+    (typeof raw === "string" && /<resultado>\s*OK\s*<\/resultado>/i.test(raw));
+
+  if (!exitoso) {
+    const mensaje =
+      payload?.message || payload?.mensaje || "Error al actualizar el cupón";
+    return { ok: false, raw, mensaje };
+  }
+
+  return { ok: true, raw, payload };
+}
+
