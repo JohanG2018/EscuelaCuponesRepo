@@ -2,6 +2,8 @@ import type { Cupon, Local, Producto, Proveedor, Categoria } from "../interface/
 
 export const API_BASE = "http://localhost:8080/wordpress/wp-json/delportal/v1";
 
+const cache = new Map<string, Producto[]>();
+
 export function fileToBase64(file: File | null): Promise<string> {
   return new Promise((resolve) => {
     if (!file) return resolve("");
@@ -170,28 +172,35 @@ export async function fetchLocales(like?: string): Promise<Local[]> {
 
 
 
-export async function searchProductos(q: string, limit = 20): Promise<Producto[]> {
+export async function searchProductos(q = "", limit = 20): Promise<Producto[]> {
+  const key = `${q}|${limit}`;
+  if (cache.has(key)) return cache.get(key)!;
+
   const url = new URL(`${API_BASE}/listado_items_marketing`);
-  url.searchParams.set("q", q.trim());
-  url.searchParams.set("limit", String(limit));
+  if (q) url.searchParams.set("q", q);
+  if (limit) url.searchParams.set("limit", String(limit));
 
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), { method: "GET" });
+  if (!res.ok) throw new Error(`Error buscando productos: ${res.status} ${res.statusText}`);
 
-  if (!res.ok) {
-    throw new Error(`Error buscando productos: ${res.status} ${res.statusText}`);
+  const json = await res.json().catch(() => null);
+
+  if (!json || (json.status !== "success" && !Array.isArray(json))) {
+    throw new Error("Respuesta inesperada del servidor.");
   }
 
-  const json = await res.json();
+  const arr = (Array.isArray(json) ? json : json.data) as any[];
 
-  const arr: Producto[] = Array.isArray(json) ? json : [];
-
-  return arr.map((p): Producto => ({
-    itemid: p.itemid ?? "",
-    nombre: p.nombre ?? "",
-    categoria: p.categoria ?? "",
-    subcategoria: p.subcategoria ?? "",
-    proveedor: p.proveedor ?? ""
+  const productos: Producto[] = arr.map((p: any) => ({
+    itemid: String(p.itemid ?? ""),
+    nombre: String(p.nombre ?? ""),
+    categoria: p.categoria ?? undefined,
+    subcategoria: p.subcategoria ?? undefined,
+    proveedor: p.proveedor ?? undefined,
   }));
+
+  cache.set(key, productos);
+  return productos;
 }
 
 export async function fetchProveedores(): Promise<Proveedor[]> {
@@ -246,32 +255,38 @@ export async function fetchSubCategorias(like?: string): Promise<Categoria[]> {
     name: item.nombre || "",
   }));
 }
-export async function UpdateCupon(xml: string): Promise<any> {
-  const res = await fetch("http://localhost:8080/wordpress/wp-json/delportal/v1/editar_xml_form", {
-    method: "PUT",
+export async function fetchCuponById(id: number): Promise<Cupon> {
+  const res = await fetch(`${API_BASE}/listado_cupones_marketing?id=${id}`, {
+    method: "GET",
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Error al cargar cupón (${res.status}): ${txt || res.statusText}`);
+  }
+  const json = await res.json().catch(() => null);
+  return json ?? null;
+}
+
+export async function updateCuponXML(xml: string, signal?: AbortSignal) {
+  const url = "http://localhost:8080/wordpress/wp-json/delportal/v1/editar_xml_form";
+
+  const res = await fetch(url, {
+    method: "PUT",   // 👈 EDITABLE → soporta PUT
     headers: {
-      "Content-Type": "application/xml",
+      "Content-Type": "application/xml; charset=utf-8",
+      Accept: "application/json, application/xml, text/plain, */*",
     },
     body: xml,
+    signal,
   });
 
-  const raw = await res.text();
-
-  let payload: any = raw;
+  const text = await res.text();
   try {
-    payload = JSON.parse(raw);
-  } catch {}
-
-  const exitoso =
-    payload?.status === "success" ||
-    (typeof raw === "string" && /<resultado>\s*OK\s*<\/resultado>/i.test(raw));
-
-  if (!exitoso) {
-    const mensaje =
-      payload?.message || payload?.mensaje || "Error al actualizar el cupón";
-    return { ok: false, raw, mensaje };
+    // intenta parsear JSON
+    return JSON.parse(text);
+  } catch {
+    return { status: "error", message: text || "Respuesta inesperada" };
   }
-
-  return { ok: true, raw, payload };
 }
+
 

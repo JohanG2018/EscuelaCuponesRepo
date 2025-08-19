@@ -21,7 +21,8 @@ import {
   fetchProveedores,
   fetchSubCategorias,
   searchProductos,
-  UpdateCupon
+  updateCuponXML,
+  fetchCuponById
 } from "../service/cupon";
 import {
   ArchivoBMP,
@@ -46,11 +47,14 @@ const FormCuponPage: React.FC = () => {
   const navigate = useNavigate();
   const toast = useRef<Toast>(null);
   
+  const combinacionId = useRef(0);
+
   const [loading, setLoading] = useState<boolean>(false);
   const [combinaciones, setCombinaciones] = useState<Combinacion[]>([]);
   const [filteredProductos, setFilteredProductos] = useState<Producto[]>([]);
   const [filteredProveedores, setFilteredProveedores] = useState<Proveedor[]>([]);
   const [subcategoriaOpts, setSubcategoriaOpts] = useState<Categoria[]>([]);
+  const [filteredProductosExcluidos, setFilteredProductosExcluidos] = useState<Producto[]>([]);
 
   const [formulario, setFormulario] = useState<Cupon>({
     id: editingId || 0,
@@ -100,7 +104,7 @@ const FormCuponPage: React.FC = () => {
           fetchSubCategorias(),
           fetchProveedores(),
           fetchLocales(),
-          searchProductos("", 100),
+          searchProductos("no hay resultados", 100),
         ]);
         setCategorias(cats);
         setSubcategorias(subs);
@@ -121,28 +125,22 @@ const FormCuponPage: React.FC = () => {
     })();
   }, []);
   useEffect(() => {
-    if (!editingId) return;
-
-    const cargarCupon = async () => {
-      try {
-        setLoading(true);
-        const cup = await UpdateCupon(editingId.toString());
-        setFormulario(cup);
-        setCombinaciones(cup.combinaciones || []);
-      } catch (err: any) {
-        toast.current?.show({
-          severity: "error",
-          summary: "Error",
-          detail: err.message || "No se pudo cargar el cupón",
-          life: 4000,
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    cargarCupon();
-  }, [editingId]);
+    if (id) {
+      const ctrl = new AbortController();
+      (async () => {
+        try {
+          setLoading(true);
+          const { data } = await fetchCuponById(Number(id));
+          setFormulario(data); 
+        } catch (err) {
+          console.error("Error cargando cupón", err);
+        } finally {
+          setLoading(false);
+        }
+      })();
+      return () => ctrl.abort();
+    }
+  }, [id]);
 
   const handleInputChange = <K extends keyof Cupon>(field: K, value: Cupon[K]) => {
     if (field === "fechaInicio") {
@@ -176,18 +174,34 @@ const FormCuponPage: React.FC = () => {
 
 const mergeCombinaciones = (base: Combinacion[], nuevas: Combinacion[]): Combinacion[] => {
   const map = new Map(base.map((r) => [r.key, r]));
-  for (const item of nuevas) map.set(item.key, item);
+  for (const item of nuevas) {
+    if (!map.has(item.key)) {
+      map.set(item.key, item);
+    }
+  }
   return Array.from(map.values());
 };
 
-const buildRows = (items: any[], tipo: TipoCombinacion): Combinacion[] =>
-  items.map((item) => ({
-    key: `${tipo}:${item?.nombre || item?.name || item}`,
-    nombre: item?.nombre || item?.name || item,
-    tipo,
-    valor: 0,
-    cantidad: 1,
-  }));
+const buildRows = (
+  items: any[] = [],
+  tipo: TipoCombinacion,
+  esExcluido = false
+): Combinacion[] => {
+  return items.map((item) => {
+    const nombre = item?.nombre || item?.name || String(item);
+    const key = `row-${combinacionId.current++}`; // NO reinicies nunca este ref
+    return {
+      key,
+      nombre,
+      tipo,
+      valor: 0,
+      cantidad: 1,
+      combinada: false,
+      excluida: esExcluido,
+    };
+  });
+};
+
 
 const onAgregarSeleccionados = () => {
   const nuevas: Combinacion[] = [
@@ -195,7 +209,7 @@ const onAgregarSeleccionados = () => {
     ...buildRows(formulario.subcategorias, "SG"),
     ...buildRows(formulario.proveedores, "P"),
     ...buildRows(formulario.productos, "I"),
-    ...buildRows(formulario.productosExcluidos, "I"),
+    ...buildRows(formulario.productosExcluidos, "I", true),
   ];
 
   const merged = mergeCombinaciones(combinaciones, nuevas);
@@ -203,15 +217,30 @@ const onAgregarSeleccionados = () => {
   handleInputChange("combinaciones", merged);
   handleInputChange("cantidadProductos", merged.length);
   handleInputChange("combinarCondiciones", merged.length > 1);
+
+  // Limpiar campos seleccionados
+  handleInputChange("categorias", []);
+  handleInputChange("subcategorias", []);
+  handleInputChange("proveedores", []);
+  handleInputChange("productos", []);
+  handleInputChange("productosExcluidos", []);
 };
+
 
 const buscarProductos = async (e: { query: string }) => {
   const query = e.query.toLowerCase();
   const resultados = (productos || []).filter((p: any) =>
-    p.name?.toLowerCase().includes(query)
+    p.nombre?.toLowerCase().includes(query)
   );
   setFilteredProductos(resultados);
 };
+const buscarProductosExcluidos = async (e: { query: string }) => {
+  const query = e.query.toLowerCase();
+  const resultados = (productos || []).filter((p: Producto) =>
+    p.nombre?.toLowerCase().includes(query)
+  );
+  setFilteredProductosExcluidos(resultados);
+}
 
 const buscarProveedores = (e: { query: string }) => {
   const query = e.query.toLowerCase();
@@ -225,7 +254,7 @@ const buscarProveedores = (e: { query: string }) => {
       const xml = buildCuponXML(formulario);
       console.log(formulario)
       const response = editingId
-        ? await UpdateCupon(await xml)      // ← aquí usamos PUT
+        ? await updateCuponXML(await xml)      // ← aquí usamos PUT
         : await postCuponXML(await xml);   // ← POST normal
 
       if (!response.ok) throw new Error(response.mensaje);
@@ -293,6 +322,10 @@ const buscarProveedores = (e: { query: string }) => {
     { id: "formato3", imagen: "/img/formato3.png", label: "Formato 3" },
     { id: "sinformato", imagen: "/img/formato4.png", label: "Sin Formato" },
   ];
+
+  function onRowDeleteFromSelectors(row: Combinacion): void {
+    throw new Error("Function not implemented.");
+  }
 
   return (
     <div className="mx-auto">
@@ -475,7 +508,7 @@ const buscarProveedores = (e: { query: string }) => {
                 <label htmlFor="productos" className="font-semibold">Productos</label>
                 <AutoComplete
                   multiple
-                  field="name"
+                  field="nombre"
                   value={formulario.productos}
                   suggestions={filteredProductos}
                   completeMethod={buscarProductos}
@@ -489,14 +522,15 @@ const buscarProveedores = (e: { query: string }) => {
             {/* Productos Excluidos */}
             <div className="mt-6 flex flex-col gap-2">
               <label htmlFor="productosExcluidos" className="font-semibold">Productos Excluidos</label>
-              <MultiSelect
-                options={productos}
-                optionLabel="nombre"
-                value={formulario.productosExcluidos}
-                onChange={(e) => handleInputChange("productosExcluidos", e.value)}
-                placeholder="Seleccione productos a excluir"
-                filter
-              />
+              <AutoComplete
+                  multiple
+                  field="nombre"
+                  value={formulario.productosExcluidos}
+                  suggestions={filteredProductosExcluidos}
+                  completeMethod={buscarProductosExcluidos}
+                  onChange={(e) => handleInputChange("productosExcluidos", e.value)}
+                  placeholder="Seleccione productos"
+                />
             </div>
 
             {/* Tabla de combinaciones */}
@@ -512,18 +546,21 @@ const buscarProveedores = (e: { query: string }) => {
                 />
               </div>
               <TableCombinacionesComponent
-                combinaciones={combinaciones}
-                setCombinaciones={(rows) => {
-                  const finalRows = typeof rows === "function" ? rows(combinaciones) : rows;
-                  setCombinaciones(finalRows);
-                  handleInputChange("combinaciones", finalRows);
-                }}
-                onRowDelete={(row) => {
-                  const filtered = combinaciones.filter((c) => c.key !== row.key);
-                  setCombinaciones(filtered);
-                  handleInputChange("combinaciones", filtered);
-                }}
-              />
+  combinaciones={combinaciones}
+  setCombinaciones={(rowsOrUpdater) => {
+    setCombinaciones((prev) => {
+      const next =
+        typeof rowsOrUpdater === "function"
+          ? (rowsOrUpdater as unknown as (p: Combinacion[]) => Combinacion[])(prev)
+          : rowsOrUpdater;
+
+      // Mantén el formulario sincronizado con el array final, no con la función
+      handleInputChange("combinaciones", next as any);
+      return next;
+    });
+  }}
+  onRowDelete={onRowDeleteFromSelectors}
+/>
 
             </div>
           </section>

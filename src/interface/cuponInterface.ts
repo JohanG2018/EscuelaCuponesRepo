@@ -67,6 +67,7 @@ export interface Cupon {
 
 
 export interface Combinacion {
+  excluida: boolean;
   key: string;
   nombre: string;
   tipo: string;

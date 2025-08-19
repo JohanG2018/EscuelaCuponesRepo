@@ -1,5 +1,3 @@
-// src/pages/CuponesPage.tsx
-
 import React, { useRef, useState, useEffect } from "react";
 import { Button } from "primereact/button";
 import { Toast } from "primereact/toast";
