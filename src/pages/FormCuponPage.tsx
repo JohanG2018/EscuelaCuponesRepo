@@ -5,7 +5,7 @@ import { ProgressSpinner } from "primereact/progressspinner";
 import { AutoComplete } from "primereact/autocomplete";
 import { Button } from "primereact/button";
 import { Checkbox } from "primereact/checkbox";
-import { FileUpload } from "primereact/fileupload";
+import { FileUpload, type FileUploadHandlerEvent } from "primereact/fileupload";
 import { InputNumber } from "primereact/inputnumber";
 import { InputText } from "primereact/inputtext";
 import { InputTextarea } from "primereact/inputtextarea";
@@ -23,6 +23,13 @@ import {
   searchProductos,
   UpdateCupon
 } from "../service/cupon";
+import {
+  ArchivoBMP,
+  ArchivoMenor,
+  validarImagenMax,
+  FechaInicio,
+  fechaFin
+} from "../utils/Validacion"
 
 import type {
   Cupon,
@@ -38,10 +45,8 @@ const FormCuponPage: React.FC = () => {
   const editingId = id && /^\d+$/.test(id) ? Number(id) : null;
   const navigate = useNavigate();
   const toast = useRef<Toast>(null);
-
+  
   const [loading, setLoading] = useState<boolean>(false);
-  const [descripcionTicket, setDescripcionTicket] = useState<string>("");
-  const [checkedDatosCliente, setCheckedDatosCliente] = useState<boolean>(false);
   const [combinaciones, setCombinaciones] = useState<Combinacion[]>([]);
   const [filteredProductos, setFilteredProductos] = useState<Producto[]>([]);
   const [filteredProveedores, setFilteredProveedores] = useState<Proveedor[]>([]);
@@ -140,56 +145,81 @@ const FormCuponPage: React.FC = () => {
   }, [editingId]);
 
   const handleInputChange = <K extends keyof Cupon>(field: K, value: Cupon[K]) => {
+    if (field === "fechaInicio") {
+      if (value && FechaInicio(value as Date)) {
+        toast.current?.show({
+          severity: "warn",
+          summary: "Fecha inválida",
+          detail: "La fecha de inicio no puede ser anterior a hoy.",
+          life: 3000,
+        });
+        return;
+      }
+    }
+
+    if (field === "fechaFin" && formulario.fechaInicio) {
+      const inicio = new Date(formulario.fechaInicio);
+      const fin = new Date(value as Date);
+      if (fechaFin(inicio, fin)) {
+        toast.current?.show({
+          severity: "warn",
+          summary: "Fecha inválida",
+          detail: "La fecha de fin no puede ser menor a la fecha de inicio.",
+          life: 3000,
+        });
+        return;
+      }
+    }
+
     setFormulario((prev) => ({ ...prev, [field]: value }));
   };
 
-  const mergeCombinaciones = (base: Combinacion[], nuevas: Combinacion[]): Combinacion[] => {
-    const map = new Map(base.map((r) => [r.key, r]));
-    for (const item of nuevas) map.set(item.key, item);
-    return Array.from(map.values());
-  };
+const mergeCombinaciones = (base: Combinacion[], nuevas: Combinacion[]): Combinacion[] => {
+  const map = new Map(base.map((r) => [r.key, r]));
+  for (const item of nuevas) map.set(item.key, item);
+  return Array.from(map.values());
+};
 
-  const buildRows = (items: any[], tipo: TipoCombinacion): Combinacion[] =>
-    items.map((item) => ({
-      key: `${tipo}:${item?.nombre || item?.name || item}`,
-      nombre: item?.nombre || item?.name || item,
-      tipo,
-      valor: 0,
-      cantidad: 1,
-    }));
+const buildRows = (items: any[], tipo: TipoCombinacion): Combinacion[] =>
+  items.map((item) => ({
+    key: `${tipo}:${item?.nombre || item?.name || item}`,
+    nombre: item?.nombre || item?.name || item,
+    tipo,
+    valor: 0,
+    cantidad: 1,
+  }));
 
-  const onAgregarSeleccionados = () => {
-    const nuevas: Combinacion[] = [
-      ...buildRows(formulario.categorias, "G"),
-      ...buildRows(formulario.subcategorias, "SG"),
-      ...buildRows(formulario.proveedores, "P"),
-      ...buildRows(formulario.productos, "I"),
-      ...buildRows(formulario.productosExcluidos, "I"),
-    ];
+const onAgregarSeleccionados = () => {
+  const nuevas: Combinacion[] = [
+    ...buildRows(formulario.categorias, "G"),
+    ...buildRows(formulario.subcategorias, "SG"),
+    ...buildRows(formulario.proveedores, "P"),
+    ...buildRows(formulario.productos, "I"),
+    ...buildRows(formulario.productosExcluidos, "I"),
+  ];
 
-    const merged = mergeCombinaciones(combinaciones, nuevas);
-    setCombinaciones(merged);
-    handleInputChange("combinaciones", merged);
-    handleInputChange("cantidadProductos", merged.length);
-    handleInputChange("combinarCondiciones", merged.length > 1);
-  };
-  const buscarProductos = async (e: { query: string }) => {
-      const query = e.query.toLowerCase();
-      const resultados = (productos || []).filter((p:any)=>
-      p.name?.toLowerCase().includes(query)   
-       );
-      setFilteredProductos(resultados);
-    
-  };
+  const merged = mergeCombinaciones(combinaciones, nuevas);
+  setCombinaciones(merged);
+  handleInputChange("combinaciones", merged);
+  handleInputChange("cantidadProductos", merged.length);
+  handleInputChange("combinarCondiciones", merged.length > 1);
+};
 
-  const buscarProveedores = (e: { query: string }) => {
-    const query = e.query.toLowerCase();
-    const resultados = (proveedores || []).filter((p: any) =>
-      p.name?.toLowerCase().includes(query)
-    );
-    setFilteredProveedores(resultados);
-  };
+const buscarProductos = async (e: { query: string }) => {
+  const query = e.query.toLowerCase();
+  const resultados = (productos || []).filter((p: any) =>
+    p.name?.toLowerCase().includes(query)
+  );
+  setFilteredProductos(resultados);
+};
 
+const buscarProveedores = (e: { query: string }) => {
+  const query = e.query.toLowerCase();
+  const resultados = (proveedores || []).filter((p: any) =>
+    p.name?.toLowerCase().includes(query)
+  );
+  setFilteredProveedores(resultados);
+}
   const handleSubmit = async () => {
     try {
       const xml = buildCuponXML(formulario);
@@ -217,6 +247,46 @@ const FormCuponPage: React.FC = () => {
       });
     }
   };
+
+  const handleUploadLogo = async (e: FileUploadHandlerEvent) => {
+    const archivo = e.files?.[0];
+    if (!archivo) return;
+
+    if (!ArchivoBMP(archivo)) {
+      toast.current?.show({
+        severity: "error",
+        summary: "Formato invalido",
+        detail: "Solo se permiten archivo .bmp",
+        life: 4000
+      })
+    }
+    if (!ArchivoMenor(archivo, 5 * 1024 * 1024)) {
+      toast.current?.show({
+        severity: "error",
+        summary: "Archivo demasiado grande",
+        detail: "Máximo permitido: 5MB",
+        life: 4000,
+      });
+      return;
+    }
+
+    const esvalido = validarImagenMax(archivo, 600);
+    if (!esvalido) {
+      toast.current?.show({
+        severity: "warn",
+        summary: "Imagen demasiado ancha",
+        detail: "El ancho máximo permitido es 600px",
+        life: 4000,
+      });
+      return;
+
+    }
+    handleInputChange("logo", archivo)
+    e.options.clear();
+  }
+
+
+
   const formatos = [
     { id: "formato1", imagen: "/img/formato1.png", label: "Formato 1" },
     { id: "formato2", imagen: "/img/formato2.png", label: "Formato 2" },
@@ -227,7 +297,7 @@ const FormCuponPage: React.FC = () => {
   return (
     <div className="mx-auto">
       <Toast ref={toast} position="top-right" />
-      <h1 className="text-center text-2xl font-bold mb-6 bg-[#9b0e0e] text-white p-4">
+      <h1 className="text-center text-2xl font-bold mb-6 bg-[#124f26] text-white p-4">
         Administrador de Cupones
       </h1>
 
@@ -248,7 +318,7 @@ const FormCuponPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex flex-col gap-2">
                 <label htmlFor="titulo" className="font-semibold">Título</label>
-                <InputText id="titulo" value={formulario.titulo} onChange={(e) => handleInputChange("titulo", e.target.value)} />
+                <InputText id="titulo" value={formulario.titulo} onChange={(e) => handleInputChange("titulo", e.target.value)} maxLength={50} />
               </div>
 
               <div className="flex flex-col gap-2">
@@ -263,7 +333,7 @@ const FormCuponPage: React.FC = () => {
 
               <div className="md:col-span-2 flex flex-col gap-2">
                 <label htmlFor="descripcion" className="font-semibold">Descripción</label>
-                <InputTextarea id="descripcion" value={formulario.descripcion} onChange={(e) => handleInputChange("descripcion", e.target.value)} rows={3} autoResize />
+                <InputTextarea id="descripcion" value={formulario.descripcion} onChange={(e) => handleInputChange("descripcion", e.target.value)} rows={3} autoResize maxLength={200}/>
               </div>
 
               <div className="md:col-span-2">
@@ -282,6 +352,7 @@ const FormCuponPage: React.FC = () => {
                         : formulario.fechaInicio
                       : null
                   }
+                  minDate={new Date()}
                   onChange={(e) => handleInputChange("fechaInicio", e.value as Date)}
                   showTime
                   hourFormat="24"
@@ -299,6 +370,11 @@ const FormCuponPage: React.FC = () => {
                         ? new Date(formulario.fechaFin)
                         : formulario.fechaFin
                       : null
+                  }
+                  minDate={
+                    formulario.fechaInicio
+                      ? new Date(formulario.fechaInicio)
+                      : new Date()
                   }
                   onChange={(e) => handleInputChange("fechaFin", e.value as Date)}
                   showTime
@@ -324,7 +400,7 @@ const FormCuponPage: React.FC = () => {
 
               <div className="flex flex-col gap-2">
                 <label htmlFor="valorMinimo" className="font-semibold">Valor mínimo</label>
-                <InputNumber id="valorMinimo" value={formulario.valorMinimo} onValueChange={(e) => handleInputChange("valorMinimo", e.value ?? 0)} mode="currency" currency="USD" locale="en-US" />
+                <InputNumber id="valorMinimo" min={0} value={formulario.valorMinimo} onValueChange={(e) => handleInputChange("valorMinimo", e.value ?? 0)} mode="currency" currency="USD" locale="en-US" />
               </div>
 
               <div className="md:col-span-2 flex flex-col gap-2">
@@ -431,7 +507,8 @@ const FormCuponPage: React.FC = () => {
                   label="Agregar"
                   icon="pi pi-plus"
                   onClick={onAgregarSeleccionados}
-                  className="p-button-success"
+                  raised
+                  className="p-3 bg-green-500 hover:bg-green-600 text-white"
                 />
               </div>
               <TableCombinacionesComponent
@@ -493,15 +570,10 @@ const FormCuponPage: React.FC = () => {
               <label className="font-semibold block mb-2">Cargar Logo (.bmp, máx 600px ancho)</label>
               <FileUpload
                 name="logo"
-                url="/api/upload"
                 accept=".bmp"
-                maxFileSize={1000000}
+                maxFileSize={5 * 1024 * 1024}
                 customUpload
-                uploadHandler={(e) => {
-                  const archivo = e.files?.[0] || null;
-                  handleInputChange("logo", archivo);
-                  console.log("Archivo cargado localmente:", archivo);
-                }}
+                uploadHandler={handleUploadLogo}
                 emptyTemplate={<p className="m-0">Arrastre el archivo aquí o haga clic para cargar.</p>}
               />
             </div>
@@ -516,6 +588,7 @@ const FormCuponPage: React.FC = () => {
                 rows={2}
                 autoResize
                 placeholder="Ej: Promoción válida hasta agotar stock. Máximo 1 cupón por persona."
+                maxLength={30}
               />
             </div>
           </section>
@@ -528,7 +601,7 @@ const FormCuponPage: React.FC = () => {
               raised
               loading={loading}
               icon={editingId ? "pi pi-save" : "pi pi-check"}
-              className="p-button-success p-4 bg-green-600 text-white"
+              className="p-button-success p-4 bg-green-500 hover:bg-green-600 text-white"
             />
             <Button
               label="Cancelar"
@@ -536,7 +609,7 @@ const FormCuponPage: React.FC = () => {
               onClick={() => navigate(-1)}
               raised
               icon="pi pi-times"
-              className="p-button-warning p-4 bg-red-600 text-white"
+              className="p-button-warning p-4 bg-red-500 hover:bg-red-600 text-white"
             />
           </div>
         </>

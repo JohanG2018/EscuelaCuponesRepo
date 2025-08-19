@@ -34,3 +34,24 @@
     border-radius: 3px;
     outline-color: transparent;
 }
+.p-inputtext:enabled:focus {
+    outline: 0 none;
+    outline-offset: 0;
+     box-shadow: 0 0 0 0.2rem #8df1a6; 
+    border-color: #8df1a6;
+}
+.ring-blue-500 {
+    --tw-ring-opacity: 1;
+    --tw-ring-color: rgb(55 224 53);
+}
+
+.p-radiobutton .p-radiobutton-box {
+    border: 0.5px solid #807e7e;
+    background: #21ca4b;
+    width: 20px;
+    height: 20px;
+    color: #288d28;
+    border-radius: 50%;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    outline-color: transparent;
+}

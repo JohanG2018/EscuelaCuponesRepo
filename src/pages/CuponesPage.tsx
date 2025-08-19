@@ -72,7 +72,7 @@ const CuponesPage: React.FC = () => {
     <>
       <Toast ref={toast} />
       <div>
-        <h1 className="text-center font-semibold text-2xl p-5 bg-[#9b0e0e] text-white">
+        <h1 className="text-center font-semibold text-2xl p-5 bg-[#124f26] text-white">
           Administrador de cupones
         </h1>
         <div className="flex justify-between items-center p-5">
@@ -81,7 +81,7 @@ const CuponesPage: React.FC = () => {
             label="Crear cupón"
             icon="pi pi-plus"
             raised
-            className="bg-[#ff2c2c] text-white p-2 hover:bg-[#8b1f1f]"
+            className="bg-green-500 text-white p-2 hover:bg-green-600"
             onClick={onCrear}
           />
         </div>
