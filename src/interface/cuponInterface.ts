@@ -43,7 +43,7 @@ export interface Cupon {
   valorMinimo: number;
   esRecurrente: boolean | number | string;
   idTipoFormato: number | string;
-  logo: File | null;
+  logo: File | string;
   nombreLogo: string;
   tipoAmbiente: string;
   esConsumidorFinal: boolean | number | string;
@@ -67,6 +67,7 @@ export interface Cupon {
 
 
 export interface Combinacion {
+  itemId: any;
   excluida: boolean;
   key: string;
   nombre: string;

@@ -3,7 +3,7 @@ import { Button } from "primereact/button";
 import { Toast } from "primereact/toast";
 import { useNavigate } from "react-router-dom";
 import CuponesTable from "../components/CuponesTable";
-import { fetchCupones } from "../service/cupon";
+import { cambiarEstadoCupon, fetchCupones } from "../service/cupon";
 import type { Cupon } from "../interface/cuponInterface"; 
 
 const CuponesPage: React.FC = () => {
@@ -37,11 +37,11 @@ const CuponesPage: React.FC = () => {
   }, []);
 
   const onCrear = () => {
-    navigate("/crear");
+    navigate("/admin/cupon/form");
   };
 
   const onEditar = (cupon: Cupon) => {
-    navigate(`/editar/${cupon.id}`);
+    navigate(`/admin/cupon/form?id=${cupon.id}`);
   };
 
   const onEliminar = (cupon: Cupon) => {
@@ -49,22 +49,44 @@ const CuponesPage: React.FC = () => {
       setCupons(prev => prev.filter(c => c.id !== cupon.id));
     }
   };
+  const isActivo = (estado: Cupon["estado"]) => {
+  if (typeof estado === "boolean") return estado;
+  if (typeof estado === "number") return estado === 1;
+  const s = String(estado).trim().toLowerCase();
+  return s === "1" || s === "activo" || s === "true";
+};
 
-  const onToggleEstado = (cupon: Cupon) => {
-    setCupons(prev =>
-      prev.map(c =>
-        c.id === cupon.id
-          ? {
-              ...c,
-              estado:
-                c.estado === "activo" || c.estado === 1
-                  ? "inactivo"
-                  : "activo",
-            }
-          : c
-      )
-    );
-  };
+ const onToggleEstado = async (cupon: Cupon) => {
+  const actual = isActivo(cupon.estado);
+  const next = !actual;
+
+  // Optimistic UI
+  const prev = cupons;
+  setCupons((list) =>
+    list.map((c) =>
+      c.id === cupon.id ? { ...c, estado: next ? 1 : 0 } : c
+    )
+  );
+
+  try {
+    await cambiarEstadoCupon(cupon.id, next);
+    toast.current?.show({
+      severity: "success",
+      summary: "Estado actualizado",
+      detail: `El cupón ahora está ${next ? "Activo" : "Inactivo"}.`,
+      life: 2500,
+    });
+  } catch (err: any) {
+    // revertir si falla
+    setCupons(prev);
+    toast.current?.show({
+      severity: "error",
+      summary: "No se pudo cambiar el estado",
+      detail: err?.message ?? "Error desconocido",
+      life: 3500,
+    });
+  }
+};
 
   return (
     <>

@@ -8,7 +8,7 @@
      width: 20px; 
     height: 20px; 
     /* color: #2f5377; */
-    border-radius: 3px; 
+    border-radius: 2px; 
     /*outline-color: #753b3b00;*/
 }
 .p-inputtext {
@@ -31,7 +31,7 @@
     background: #ffffff;
     border: 1px solid #9b9494 !important;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
-    border-radius: 3px;
+    border-radius: 2px;
     outline-color: transparent;
 }
 .p-inputtext:enabled:focus {
@@ -40,14 +40,11 @@
      box-shadow: 0 0 0 0.2rem #8df1a6; 
     border-color: #8df1a6;
 }
-.ring-blue-500 {
-    --tw-ring-opacity: 1;
-    --tw-ring-color: rgb(55 224 53);
-}
+
 
 .p-radiobutton .p-radiobutton-box {
     border: 0.5px solid #807e7e;
-    background: #21ca4b;
+    background: #6ae489;
     width: 20px;
     height: 20px;
     color: #288d28;

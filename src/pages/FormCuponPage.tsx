@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate , useSearchParams } from "react-router-dom";
 import { Toast } from "primereact/toast";
 import { ProgressSpinner } from "primereact/progressspinner";
 import { AutoComplete } from "primereact/autocomplete";
@@ -42,12 +42,12 @@ import type {
 } from "../interface/cuponInterface";
 
 const FormCuponPage: React.FC = () => {
-  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate(); 
+  const [params] = useSearchParams();
+  const id = params.get("id");
   const editingId = id && /^\d+$/.test(id) ? Number(id) : null;
-  const navigate = useNavigate();
   const toast = useRef<Toast>(null);
-  
-  const combinacionId = useRef(0);
+
 
   const [loading, setLoading] = useState<boolean>(false);
   const [combinaciones, setCombinaciones] = useState<Combinacion[]>([]);
@@ -69,7 +69,7 @@ const FormCuponPage: React.FC = () => {
     valorMinimo: 0,
     esRecurrente: false,
     idTipoFormato: 1,
-    logo: null,
+    logo: "",
     nombreLogo: "formato1",
     tipoAmbiente: "Pruebas",
     esConsumidorFinal: true,
@@ -131,7 +131,7 @@ const FormCuponPage: React.FC = () => {
         try {
           setLoading(true);
           const { data } = await fetchCuponById(Number(id));
-          setFormulario(data); 
+          setFormulario(data);
         } catch (err) {
           console.error("Error cargando cupón", err);
         } finally {
@@ -172,90 +172,114 @@ const FormCuponPage: React.FC = () => {
     setFormulario((prev) => ({ ...prev, [field]: value }));
   };
 
-const mergeCombinaciones = (base: Combinacion[], nuevas: Combinacion[]): Combinacion[] => {
-  const map = new Map(base.map((r) => [r.key, r]));
-  for (const item of nuevas) {
-    if (!map.has(item.key)) {
-      map.set(item.key, item);
+  // DEDUP por (tipo + itemId)
+  const mergeCombinaciones = (base: Combinacion[], nuevas: Combinacion[]): Combinacion[] => {
+    const map = new Map(base.map((r) => [`${r.tipo}:${r.itemId}`, r]));
+    for (const item of nuevas) {
+      const k = `${item.tipo}:${item.itemId}`;
+      if (!map.has(k)) map.set(k, item);
     }
+    return Array.from(map.values());
+  };
+
+  // Helpers
+  const toArray = (v: any) => (Array.isArray(v) ? v : v ? [v] : []);
+
+  const getName = (it: any) =>
+    (typeof it === "string" ? it : undefined) ??
+    it?.nombre ?? it?.name ?? it?.title ?? it?.label ??
+    it?.local ?? it?.categoria ?? it?.subcategoria ?? it?.proveedor ??
+    String(it);
+
+  // ID real según tipo
+  const getIdByTipo = (it: any, tipo: TipoCombinacion): string => {
+    if (typeof it === "string") return it; // si vienen strings, úsalo como id
+    switch (tipo) {
+      case "I":  // Producto
+        return (it.itemid ?? it.id ?? it.value ?? it.key ?? getName(it))?.toString();
+      case "G":  // Categoría
+        return (it.id ?? it.value ?? it.codigo ?? it.key ?? getName(it))?.toString();
+      case "SG": // Subcategoría
+        return (it.id ?? it.value ?? it.codigo ?? it.key ?? getName(it))?.toString();
+      case "P":  // Proveedor
+        return (it.id ?? it.value ?? it.codigo ?? it.key ?? getName(it))?.toString();
+      default:
+        return (it.id ?? it.value ?? it.key ?? getName(it))?.toString();
+    }
+  };
+
+  const buildRows = (
+    items: any[],
+    tipo: TipoCombinacion,
+    opts?: { excluida?: boolean }
+  ): Combinacion[] =>
+    toArray(items).map((it: any) => {
+      const nombre = getName(it);
+      const itemId = getIdByTipo(it, tipo);
+      return {
+        key: `${itemId}`,          // SOLO UI (estable y único)
+        itemId,                            // <-- ESTE VA A BD/XML como ITEMID
+        nombre,                            // para mostrar
+        tipo,                              // 'I' | 'G' | 'SG' | 'P'
+        cantidad: 1,
+        valor: 0,
+        combinada: false,
+        excluida: opts?.excluida ?? false, // solo true para excluidos
+      } as Combinacion;
+    });
+
+  const onAgregarSeleccionados = () => {
+    const nuevas: Combinacion[] = [
+      ...buildRows(formulario.categorias, "G"),
+      ...buildRows(formulario.subcategorias, "SG"),
+      ...buildRows(formulario.proveedores, "P"),
+      ...buildRows(formulario.productos, "I"),
+      ...buildRows(formulario.productosExcluidos, "I", { excluida: true }), // <-- corregido
+    ];
+
+    const merged = mergeCombinaciones(combinaciones, nuevas);
+    setCombinaciones(merged);
+    handleInputChange("combinaciones", merged);
+    handleInputChange("cantidadProductos", merged.length);
+    handleInputChange("combinarCondiciones", merged.length > 1);
+
+    // Limpiar selects
+    handleInputChange("categorias", []);
+    handleInputChange("subcategorias", []);
+    handleInputChange("proveedores", []);
+    handleInputChange("productos", []);
+    handleInputChange("productosExcluidos", []);
+  };
+  const buscarProductos = async (e: { query: string }) => {
+    const query = e.query.toLowerCase();
+    const resultados = (productos || []).filter((p: any) =>
+      p.nombre?.toLowerCase().includes(query)
+    );
+    setFilteredProductos(resultados);
+  };
+  const buscarProductosExcluidos = async (e: { query: string }) => {
+    const query = e.query.toLowerCase();
+    const resultados = (productos || []).filter((p: Producto) =>
+      p.nombre?.toLowerCase().includes(query)
+    );
+    setFilteredProductosExcluidos(resultados);
   }
-  return Array.from(map.values());
-};
 
-const buildRows = (
-  items: any[] = [],
-  tipo: TipoCombinacion,
-  esExcluido = false
-): Combinacion[] => {
-  return items.map((item) => {
-    const nombre = item?.nombre || item?.name || String(item);
-    const key = `row-${combinacionId.current++}`; // NO reinicies nunca este ref
-    return {
-      key,
-      nombre,
-      tipo,
-      valor: 0,
-      cantidad: 1,
-      combinada: false,
-      excluida: esExcluido,
-    };
-  });
-};
-
-
-const onAgregarSeleccionados = () => {
-  const nuevas: Combinacion[] = [
-    ...buildRows(formulario.categorias, "G"),
-    ...buildRows(formulario.subcategorias, "SG"),
-    ...buildRows(formulario.proveedores, "P"),
-    ...buildRows(formulario.productos, "I"),
-    ...buildRows(formulario.productosExcluidos, "I", true),
-  ];
-
-  const merged = mergeCombinaciones(combinaciones, nuevas);
-  setCombinaciones(merged);
-  handleInputChange("combinaciones", merged);
-  handleInputChange("cantidadProductos", merged.length);
-  handleInputChange("combinarCondiciones", merged.length > 1);
-
-  // Limpiar campos seleccionados
-  handleInputChange("categorias", []);
-  handleInputChange("subcategorias", []);
-  handleInputChange("proveedores", []);
-  handleInputChange("productos", []);
-  handleInputChange("productosExcluidos", []);
-};
-
-
-const buscarProductos = async (e: { query: string }) => {
-  const query = e.query.toLowerCase();
-  const resultados = (productos || []).filter((p: any) =>
-    p.nombre?.toLowerCase().includes(query)
-  );
-  setFilteredProductos(resultados);
-};
-const buscarProductosExcluidos = async (e: { query: string }) => {
-  const query = e.query.toLowerCase();
-  const resultados = (productos || []).filter((p: Producto) =>
-    p.nombre?.toLowerCase().includes(query)
-  );
-  setFilteredProductosExcluidos(resultados);
-}
-
-const buscarProveedores = (e: { query: string }) => {
-  const query = e.query.toLowerCase();
-  const resultados = (proveedores || []).filter((p: any) =>
-    p.name?.toLowerCase().includes(query)
-  );
-  setFilteredProveedores(resultados);
-}
+  const buscarProveedores = (e: { query: string }) => {
+    const query = e.query.toLowerCase();
+    const resultados = (proveedores || []).filter((p: any) =>
+      p.name?.toLowerCase().includes(query)
+    );
+    setFilteredProveedores(resultados);
+  }
   const handleSubmit = async () => {
     try {
       const xml = buildCuponXML(formulario);
       console.log(formulario)
+      const xmlData = await xml;
       const response = editingId
-        ? await updateCuponXML(await xml)      // ← aquí usamos PUT
-        : await postCuponXML(await xml);   // ← POST normal
+        ? await updateCuponXML(xmlData)      // ← aquí usamos PUT
+        : await postCuponXML(xmlData);   // ← POST normal
 
       if (!response.ok) throw new Error(response.mensaje);
 
@@ -266,7 +290,7 @@ const buscarProveedores = (e: { query: string }) => {
         life: 3000,
       });
 
-      navigate("/");
+    navigate("/admin/cupon");
     } catch (err: any) {
       toast.current?.show({
         severity: "error",
@@ -366,7 +390,7 @@ const buscarProveedores = (e: { query: string }) => {
 
               <div className="md:col-span-2 flex flex-col gap-2">
                 <label htmlFor="descripcion" className="font-semibold">Descripción</label>
-                <InputTextarea id="descripcion" value={formulario.descripcion} onChange={(e) => handleInputChange("descripcion", e.target.value)} rows={3} autoResize maxLength={200}/>
+                <InputTextarea id="descripcion" value={formulario.descripcion} onChange={(e) => handleInputChange("descripcion", e.target.value)} rows={3} autoResize maxLength={200} />
               </div>
 
               <div className="md:col-span-2">
@@ -523,14 +547,14 @@ const buscarProveedores = (e: { query: string }) => {
             <div className="mt-6 flex flex-col gap-2">
               <label htmlFor="productosExcluidos" className="font-semibold">Productos Excluidos</label>
               <AutoComplete
-                  multiple
-                  field="nombre"
-                  value={formulario.productosExcluidos}
-                  suggestions={filteredProductosExcluidos}
-                  completeMethod={buscarProductosExcluidos}
-                  onChange={(e) => handleInputChange("productosExcluidos", e.value)}
-                  placeholder="Seleccione productos"
-                />
+                multiple
+                field="nombre"
+                value={formulario.productosExcluidos}
+                suggestions={filteredProductosExcluidos}
+                completeMethod={buscarProductosExcluidos}
+                onChange={(e) => handleInputChange("productosExcluidos", e.value)}
+                placeholder="Seleccione productos"
+              />
             </div>
 
             {/* Tabla de combinaciones */}
@@ -546,21 +570,21 @@ const buscarProveedores = (e: { query: string }) => {
                 />
               </div>
               <TableCombinacionesComponent
-  combinaciones={combinaciones}
-  setCombinaciones={(rowsOrUpdater) => {
-    setCombinaciones((prev) => {
-      const next =
-        typeof rowsOrUpdater === "function"
-          ? (rowsOrUpdater as unknown as (p: Combinacion[]) => Combinacion[])(prev)
-          : rowsOrUpdater;
+                combinaciones={combinaciones}
+                setCombinaciones={(rowsOrUpdater) => {
+                  setCombinaciones((prev) => {
+                    const next =
+                      typeof rowsOrUpdater === "function"
+                        ? (rowsOrUpdater as unknown as (p: Combinacion[]) => Combinacion[])(prev)
+                        : rowsOrUpdater;
 
-      // Mantén el formulario sincronizado con el array final, no con la función
-      handleInputChange("combinaciones", next as any);
-      return next;
-    });
-  }}
-  onRowDelete={onRowDeleteFromSelectors}
-/>
+                    // Mantén el formulario sincronizado con el array final, no con la función
+                    handleInputChange("combinaciones", next as any);
+                    return next;
+                  });
+                }}
+                onRowDelete={onRowDeleteFromSelectors}
+              />
 
             </div>
           </section>
@@ -573,7 +597,7 @@ const buscarProveedores = (e: { query: string }) => {
                 <div
                   key={formato.id}
                   className={`border rounded-md p-3 text-center cursor-pointer transition-all duration-200
-                  ${formulario.nombreLogo === formato.id ? "ring-2 ring-blue-500" : "hover:shadow-md"}`}
+                  ${formulario.nombreLogo === formato.id ? "ring-2 ring-green-600" : "hover:shadow-md"}`}
                   onClick={() => handleInputChange("nombreLogo", formato.id)}
                 >
                   <img src={formato.imagen} alt={formato.label} className="w-full h-24 object-contain mb-2" />
@@ -639,14 +663,16 @@ const buscarProveedores = (e: { query: string }) => {
               loading={loading}
               icon={editingId ? "pi pi-save" : "pi pi-check"}
               className="p-button-success p-4 bg-green-500 hover:bg-green-600 text-white"
+              
             />
             <Button
               label="Cancelar"
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/admin/cupon")}
               raised
               icon="pi pi-times"
               className="p-button-warning p-4 bg-red-500 hover:bg-red-600 text-white"
+            
             />
           </div>
         </>

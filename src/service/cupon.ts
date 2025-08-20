@@ -4,17 +4,33 @@ export const API_BASE = "http://localhost:8080/wordpress/wp-json/delportal/v1";
 
 const cache = new Map<string, Producto[]>();
 
-export function fileToBase64(file: File | null): Promise<string> {
-  return new Promise((resolve) => {
-    if (!file) return resolve("");
-    const reader = new FileReader();
-    reader.onload = () => {
-      const res = (reader.result as string) || "";
-      const comma = res.indexOf(",");
-      resolve(comma >= 0 ? res.substring(comma + 1) : res);
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => {
+      const s = (r.result as string) || "";
+      resolve(s.indexOf(",") >= 0 ? s.substring(s.indexOf(",")+1) : s);
     };
-    reader.readAsDataURL(file);
+    r.onerror = reject;
+    r.readAsDataURL(file);
   });
+}
+
+export async function subirLogoYObtenerURL(input: File | string): Promise<string> {
+  const base64 = typeof input === "string" ? input : await fileToBase64(input);
+  const res = await fetch(`${API_BASE}/subir_logo`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      base64, 
+      filename: `logo_cupon_${Date.now()}`
+    }),
+  });
+  const json = await res.json();
+  if (!res.ok || json.status !== "ok") {
+    throw new Error(json.message || "Error subiendo logo");
+  }
+  return json.url; // o json.path si quieres guardar ruta
 }
 
 export async function buildCuponXML(formulario: Cupon): Promise<string> {
@@ -30,8 +46,9 @@ export async function buildCuponXML(formulario: Cupon): Promise<string> {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 };
-  const logoBase64 = await fileToBase64(formulario.logo);
-
+const logoUrl = formulario.logo   // puede ser File o string base64 (o incluso url ya)
+  ? await subirLogoYObtenerURL(formulario.logo as File | string)
+  : '';
   return `
 <req>
   <Cabecera>
@@ -46,7 +63,7 @@ export async function buildCuponXML(formulario: Cupon): Promise<string> {
     <montoMinimo>${formulario.valorMinimo || 0}</montoMinimo>
     <esRecurrente>${formulario.esRecurrente ? 1 : 0}</esRecurrente>
     <idTipoFormato>${esc(formulario.idTipoFormato)}</idTipoFormato>
-    <logo>${esc(logoBase64)}</logo>
+    <logo>${esc(logoUrl)}</logo>
     <nombreLogo>${esc(formulario.nombreLogo)}</nombreLogo>
     <ambiente>${esc(formulario.tipoAmbiente)}</ambiente>
     <esConsumidorFinal>${formulario.esConsumidorFinal ? 1 : 0}</esConsumidorFinal>
@@ -264,6 +281,7 @@ export async function fetchCuponById(id: number): Promise<Cupon> {
     throw new Error(`Error al cargar cupón (${res.status}): ${txt || res.statusText}`);
   }
   const json = await res.json().catch(() => null);
+  console.log(json)
   return json ?? null;
 }
 
@@ -288,5 +306,32 @@ export async function updateCuponXML(xml: string, signal?: AbortSignal) {
     return { status: "error", message: text || "Respuesta inesperada" };
   }
 }
+export async function cambiarEstadoCupon(id: number | string, activo: boolean) {
+  const nuevoEstado = activo ? 1 : 0; 
 
+  const xml = `
+    <req>
+      <id_cupon>${id}</id_cupon>
+      <nuevo_estado>${nuevoEstado}</nuevo_estado>
+    </req>
+  `.trim();
 
+  const res = await fetch(`${API_BASE}/cambiar_estado_cupon`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'text/xml' },
+    body: xml,
+    
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`Error al cambiar estado: ${res.status} ${text}`);
+  }
+
+  try {
+    console.log(text)
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
