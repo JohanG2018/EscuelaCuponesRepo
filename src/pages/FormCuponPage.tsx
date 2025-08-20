@@ -124,23 +124,41 @@ const FormCuponPage: React.FC = () => {
       }
     })();
   }, []);
-  useEffect(() => {
-    if (id) {
-      const ctrl = new AbortController();
-      (async () => {
-        try {
-          setLoading(true);
-          const { data } = await fetchCuponById(Number(id));
-          setFormulario(data);
-        } catch (err) {
-          console.error("Error cargando cupón", err);
-        } finally {
-          setLoading(false);
-        }
-      })();
-      return () => ctrl.abort();
+ useEffect(() => {
+  if (!id) return;
+
+  const ctrl = new AbortController();
+
+  const cargarCupon = async () => {
+    try {
+      setLoading(true);
+      const cupon = await fetchCuponById(Number(id));
+
+      if (!cupon) throw new Error("Cupón no encontrado");
+
+      // Si el cupon viene en formato { data: {...} }, extrae
+      const data = cupon?.data || cupon;
+
+      setFormulario((prev) => ({
+        ...prev,
+        ...data,
+        id: Number(id),
+      }));
+
+      if (Array.isArray(data.combinaciones)) {
+        setCombinaciones(data.combinaciones);
+      }
+    } catch (err) {
+      console.error("Error cargando cupón:", err);
+    } finally {
+      setLoading(false);
     }
-  }, [id]);
+  };
+
+  cargarCupon();
+
+  return () => ctrl.abort();
+}, [id]);
 
   const handleInputChange = <K extends keyof Cupon>(field: K, value: Cupon[K]) => {
     if (field === "fechaInicio") {
@@ -272,35 +290,57 @@ const FormCuponPage: React.FC = () => {
     );
     setFilteredProveedores(resultados);
   }
-  const handleSubmit = async () => {
-    try {
-      const xml = buildCuponXML(formulario);
-      console.log(formulario)
-      const xmlData = await xml;
-      const response = editingId
-        ? await updateCuponXML(xmlData)      // ← aquí usamos PUT
-        : await postCuponXML(xmlData);   // ← POST normal
+const handleSubmit = async () => {
+  try {
+    // Construir el XML SOLO una vez.
+    const xmlData = await buildCuponXML({
+      ...formulario,
+      id: editingId || 0,          // si estás editando, incluye el id para <idCupon>
+      combinaciones,               // usa el estado real de la tabla
+    });
 
-      if (!response.ok) throw new Error(response.mensaje);
+    // Enviar (PUT si edita, POST si crea)
+    const resp = editingId
+      ? await updateCuponXML(xmlData)
+      : await postCuponXML(xmlData);
 
-      toast.current?.show({
-        severity: "success",
-        summary: "Éxito",
-        detail: editingId ? "Cupón actualizado" : "Cupón creado",
-        life: 3000,
-      });
+    // Normalizar éxito (acepta JSON o XML con <listo>OK</listo>)
+    const ok =
+      resp?.ok === true ||
+      resp?.status === "success" ||
+      /<listo>\s*OK\s*<\/listo>/i.test(resp?.raw || "") ||
+      (typeof resp === "string" && /<listo>\s*OK\s*<\/listo>/i.test(resp));
 
-    navigate("/admin/cupon");
-    } catch (err: any) {
-      toast.current?.show({
-        severity: "error",
-        summary: "Error",
-        detail: err.message || "Error al guardar el cupón",
-        life: 4000,
-      });
+    if (!ok) {
+      // Intenta extraer mensaje claro desde JSON o XML
+      const raw = typeof resp === "string" ? resp : resp?.raw || "";
+      const xmlMsgMatch = raw.match?.(/<mensaje>([\s\S]*?)<\/mensaje>/i);
+      const msg =
+        resp?.mensaje ||
+        resp?.message ||
+        (xmlMsgMatch ? xmlMsgMatch[1].trim() : "No se pudo guardar");
+      throw new Error(msg);
     }
-  };
 
+    // Éxito
+    toast.current?.show({
+      severity: "success",
+      summary: "Éxito",
+      detail: editingId ? "Cupón actualizado" : "Cupón creado",
+      life: 3000,
+    });
+    navigate("/admin/cupon");
+  } catch (err: any) {
+    toast.current?.show({
+      severity: "error",
+      summary: "Error",
+      detail: err?.message || "Error al guardar el cupón",
+      life: 4000,
+    });
+  }
+};
+
+  
   const handleUploadLogo = async (e: FileUploadHandlerEvent) => {
     const archivo = e.files?.[0];
     if (!archivo) return;
@@ -381,9 +421,9 @@ const FormCuponPage: React.FC = () => {
               <div className="flex flex-col gap-2">
                 <label className="font-semibold">Ambiente</label>
                 <div className="flex gap-4">
-                  <RadioButton inputId="pruebas" name="tipoAmbiente" value="Pruebas" onChange={(e) => handleInputChange("tipoAmbiente", e.value)} checked={formulario.tipoAmbiente === "Pruebas"} />
+                  <RadioButton inputId="pruebas" name="tipoAmbiente" value="TEST" onChange={(e) => handleInputChange("tipoAmbiente", e.value)} checked={formulario.tipoAmbiente === "Pruebas"} />
                   <label htmlFor="pruebas">Pruebas</label>
-                  <RadioButton inputId="produccion" name="tipoAmbiente" value="Produccion" onChange={(e) => handleInputChange("tipoAmbiente", e.value)} checked={formulario.tipoAmbiente === "Produccion"} />
+                  <RadioButton inputId="produccion" name="tipoAmbiente" value="PROD" onChange={(e) => handleInputChange("tipoAmbiente", e.value)} checked={formulario.tipoAmbiente === "Produccion"} />
                   <label htmlFor="produccion">Producción</label>
                 </div>
               </div>
@@ -465,7 +505,7 @@ const FormCuponPage: React.FC = () => {
                 <div className="flex gap-4">
                   <RadioButton inputId="criterio1" name="criterio" value="1" onChange={(e) => handleInputChange("criterio", e.value)} checked={formulario.criterio === "1"} />
                   <label htmlFor="criterio1">Recurrente por cada valor</label>
-                  <RadioButton inputId="criterio2" name="criterio" value="2" onChange={(e) => handleInputChange("criterio", e.value)} checked={formulario.criterio === "2"} />
+                  <RadioButton inputId="criterio2" name="criterio" value="0" onChange={(e) => handleInputChange("criterio", e.value)} checked={formulario.criterio === "0"} />
                   <label htmlFor="criterio2">Valor mínimo de compra</label>
                 </div>
               </div>
@@ -473,7 +513,7 @@ const FormCuponPage: React.FC = () => {
             <div className="md:col-span-2 flex flex-col gap-2">
               <label htmlFor="locales" className="font-semibold">Locales</label>
               <MultiSelect
-                options={locales || []}
+                options={locales }
                 optionLabel="local"
                 value={formulario.locales}
                 onChange={(e: any) => handleInputChange("locales", e.value)}

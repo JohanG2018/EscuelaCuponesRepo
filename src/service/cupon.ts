@@ -16,22 +16,6 @@ async function fileToBase64(file: File): Promise<string> {
   });
 }
 
-export async function subirLogoYObtenerURL(input: File | string): Promise<string> {
-  const base64 = typeof input === "string" ? input : await fileToBase64(input);
-  const res = await fetch(`${API_BASE}/subir_logo`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      base64, 
-      filename: `logo_cupon_${Date.now()}`
-    }),
-  });
-  const json = await res.json();
-  if (!res.ok || json.status !== "ok") {
-    throw new Error(json.message || "Error subiendo logo");
-  }
-  return json.url; // o json.path si quieres guardar ruta
-}
 
 export async function buildCuponXML(formulario: Cupon): Promise<string> {
   const esc = (s: any) =>
@@ -47,11 +31,11 @@ export async function buildCuponXML(formulario: Cupon): Promise<string> {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 };
 const logoUrl = formulario.logo   // puede ser File o string base64 (o incluso url ya)
-  ? await subirLogoYObtenerURL(formulario.logo as File | string)
-  : '';
+ 
   return `
 <req>
   <Cabecera>
+    ${formulario.id ? `<idCupon>${esc(formulario.id)}</idCupon>` : ""}
     <descripcion>${esc(formulario.descripcion)}</descripcion>
     <tituloCupon>${esc(formulario.titulo)}</tituloCupon>
     <textoCupon>${esc(formulario.descripcionTicket)}</textoCupon>
@@ -286,26 +270,48 @@ export async function fetchCuponById(id: number): Promise<Cupon> {
 }
 
 export async function updateCuponXML(xml: string, signal?: AbortSignal) {
-  const url = "http://localhost:8080/wordpress/wp-json/delportal/v1/editar_xml_form";
+  const url = `${API_BASE}/editar_xml_form`;
 
   const res = await fetch(url, {
-    method: "PUT",   // 👈 EDITABLE → soporta PUT
+    method: "PUT",
     headers: {
-      "Content-Type": "application/xml; charset=utf-8",
-      Accept: "application/json, application/xml, text/plain, */*",
+      // WP/PHP suelen tolerar mejor text/xml
+      "Content-Type": "text/xml; charset=utf-8",
+      "Accept": "application/json, text/xml, application/xml, */*",
     },
     body: xml,
     signal,
   });
 
   const text = await res.text();
+
+  // 1) Si falló HTTP, intenta sacar mensaje de XML
+  if (!res.ok) {
+    let msg = text || res.statusText;
+    try {
+      const m = text.match(/<mensaje>([\s\S]*?)<\/mensaje>/i);
+      if (m) msg = m[1].trim();
+    } catch { /* noop */ }
+    throw new Error(`Error ${res.status}: ${msg}`);
+  }
+
+  // 2) Si vino JSON, devuélvelo
   try {
-    // intenta parsear JSON
     return JSON.parse(text);
   } catch {
-    return { status: "error", message: text || "Respuesta inesperada" };
+    // 3) Si vino XML, detecta éxito tipo <Root><listo>OK</listo></Root>
+    const ok = /<listo>\s*OK\s*<\/listo>/i.test(text);
+    if (ok) return { status: "success", raw: text };
+
+    // Intenta extraer mensaje de error si vino en XML
+    const m = text.match(/<mensaje>([\s\S]*?)<\/mensaje>/i);
+    if (m) return { status: "error", message: m[1].trim(), raw: text };
+
+    // Desconocido pero exitoso HTTP
+    return { status: "unknown", raw: text };
   }
 }
+
 export async function cambiarEstadoCupon(id: number | string, activo: boolean) {
   const nuevoEstado = activo ? 1 : 0; 
 
