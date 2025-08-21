@@ -50,7 +50,7 @@ export interface Cupon {
   aplicaLocales: boolean | number | string;
   combinarCondiciones: boolean | number | string;
   cantidadProductos: number | string;
-  criterio:string;
+  criterio:boolean;
   formatoLogo:string
   legal:string
   factura:boolean

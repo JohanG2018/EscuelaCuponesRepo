@@ -39,18 +39,22 @@ const CuponesTable: React.FC<Props> = ({
           icon="pi pi-pencil"
           className="p-button-sm p-button-text"
           onClick={() => onEdit(row)}
+          style={{color:"yellow"}}
           aria-label="Editar cupón"
+          tooltip="Editar"
         />
         <Button
           icon="pi pi-trash"
           className="p-button-sm p-button-text"
           onClick={() => onEliminar(row)}
+          style={{color:"red"}}
           aria-label="Eliminar cupón"
+          tooltip="Eliminar"
         />
         <Button
           icon={activo ? "pi pi-lock-open" : "pi pi-lock"}
           className="p-button-sm p-button-text"
-          style={{ color: activo ? "green" : "gray" }}
+          style={{ color: activo ? "green" : "yellowgreen" }}
           onClick={() => onToggleStatus(row)} // el padre hace el toggle real
           tooltip={activo ? "Desactivar" : "Activar"}
           aria-label={activo ? "Desactivar cupón" : "Activar cupón"}

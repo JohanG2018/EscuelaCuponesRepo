@@ -4,7 +4,7 @@ import { Outlet } from "react-router-dom";
 import SideMenu from "./SideMenu";
 
 export default function Layout() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   return (
     <div className="min-h-screen ">
