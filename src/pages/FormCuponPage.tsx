@@ -12,7 +12,7 @@ import { InputTextarea } from "primereact/inputtextarea";
 import { Calendar } from "primereact/calendar";
 import { RadioButton } from "primereact/radiobutton";
 import MultiSelect from "../components/MultiselectComponent";
-import TableCombinacionesComponent, { type TipoCombinacion } from "../components/TableCombinacionesComponent";
+import TableCombinacionesComponent  from "../components/TableCombinacionesComponent";
 import {
   buildCuponXML,
   postCuponXML,
@@ -39,6 +39,8 @@ import type {
   Proveedor,
   Local,
   Combinacion,
+  TipoCombinacion
+
 } from "../interface/cuponInterface";
 
 const FormCuponPage: React.FC = () => {
@@ -55,7 +57,6 @@ const FormCuponPage: React.FC = () => {
   const [filteredProveedores, setFilteredProveedores] = useState<Proveedor[]>([]);
   const [subcategoriaOpts, setSubcategoriaOpts] = useState<Categoria[]>([]);
   const [filteredProductosExcluidos, setFilteredProductosExcluidos] = useState<Producto[]>([]);
-
   const [formulario, setFormulario] = useState<Cupon>({
     id: editingId || 0,
     titulo: "",
@@ -87,6 +88,8 @@ const FormCuponPage: React.FC = () => {
     formatoLogo: "formato1",
     legal: "",
     factura: false,
+    datosCliente: false,
+
   });
 
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -94,10 +97,16 @@ const FormCuponPage: React.FC = () => {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [locales, setLocales] = useState<Local[]>([]);
-  const toBool = (v: any): boolean => {
-  const s = (v ?? "").toString().trim().toLowerCase();
-  return v === true || v === 1 || s === "1" || s === "true" || s === "sí" || s === "si";
-};
+
+ 
+  const sameLocales = (a: Local[] = [], b: Local[] = []) => {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (keyLocal(a[i]) !== keyLocal(b[i])) return false;
+    }
+    return true;
+  };
+
   useEffect(() => {
     (async () => {
       try {
@@ -139,13 +148,12 @@ const FormCuponPage: React.FC = () => {
 
         if (!cupon) throw new Error("Cupón no encontrado");
 
-        // Si el cupon viene en formato { data: {...} }, extrae
         const data = cupon?.data || cupon;
 
         setFormulario((prev) => ({
           ...prev,
           ...data,
-          
+
           id: Number(id),
         }));
 
@@ -163,6 +171,44 @@ const FormCuponPage: React.FC = () => {
 
     return () => ctrl.abort();
   }, [id]);
+  // Helpers recomendados (fuera del componente o memoizados)
+const keyLocal = (l: any) => String(l?.id ?? `${l?.codigo}-${l?.nombre}`);
+
+// Compara arrays por clave estable (sin importar la referencia del objeto)
+const sameLocalesByKey = (a: any[] = [], b: any[] = []) => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (keyLocal(a[i]) !== keyLocal(b[i])) return false;
+  }
+  return true;
+};
+
+useEffect(() => {
+  // Ejecuta solo cuando ambos están cargados
+  if (!locales.length || !formulario.locales?.length) return;
+
+  // Índice del catálogo por clave
+  const catalogByKey = new Map(locales.map(o => [keyLocal(o), o]));
+
+  // 1) Deduplica por clave
+  const seen = new Set<string>();
+  const deduped = [];
+  for (const sel of formulario.locales) {
+    const k = keyLocal(sel);
+    if (!seen.has(k)) {
+      seen.add(k);
+      deduped.push(sel);
+    }
+  }
+
+  // 2) Reconciliar: reemplazar por el objeto oficial del catálogo si existe
+  const reconciled = deduped.map(sel => catalogByKey.get(keyLocal(sel)) ?? sel);
+
+  // 3) Evitar setState si no cambia nada (compara por claves)
+  if (!sameLocalesByKey(formulario.locales, reconciled)) {
+    setFormulario(prev => ({ ...prev, locales: reconciled }));
+  }
+}, [locales, formulario.locales]); 
 
   const handleInputChange = <K extends keyof Cupon>(field: K, value: Cupon[K]) => {
     if (field === "fechaInicio") {
@@ -391,7 +437,7 @@ const FormCuponPage: React.FC = () => {
     { id: "sinformato", imagen: "/img/formato4.png", label: "Sin Formato" },
   ];
 
-  function onRowDeleteFromSelectors(row: Combinacion): void {
+  function onRowDeleteFromSelectors(_row: Combinacion): void {
     throw new Error("Function not implemented.");
   }
 
@@ -444,7 +490,8 @@ const FormCuponPage: React.FC = () => {
               </div>
 
               <div className="md:col-span-2">
-                <Checkbox inputId="factura" checked={formulario.factura} onChange={(e) => handleInputChange("factura", e.checked ?? false)} />
+                <Checkbox inputId="factura" checked={!!formulario.factura} 
+                onChange={(e) => handleInputChange("factura", !!e.checked )} />
                 <label htmlFor="factura" className="ml-2">Permite Factura</label>
               </div>
 
@@ -515,7 +562,7 @@ const FormCuponPage: React.FC = () => {
                   inputId="criterio1"
                   name="esRecurrente"
                   value={true}
-                  onChange={(e) => handleInputChange("criterio", !!e.value)}
+                  onChange={(e) => handleInputChange("esRecurrente", true)}
                   checked={formulario.esRecurrente === true}
                 />
                 <label htmlFor="criterio1">Recurrente por cada valor</label>
@@ -524,12 +571,11 @@ const FormCuponPage: React.FC = () => {
                   inputId="criterio2"
                   name="esRecurrente"
                   value={false}
-                  onChange={(e) => handleInputChange("criterio", !!e.value)}
+                  onChange={(e) => handleInputChange("esRecurrente", false)}
                   checked={formulario.esRecurrente === false}
                 />
                 <label htmlFor="criterio2">Valor mínimo de compra</label>
               </div>
-
             </div>
             <div className="md:col-span-2 flex flex-col gap-2">
               <label htmlFor="locales" className="font-semibold">Locales</label>
@@ -651,28 +697,47 @@ const FormCuponPage: React.FC = () => {
           </section>
           <section className="p-5">
             <h2 className="text-xl font-semibold border-b pb-1 mb-4 mt-10">Configuración Visual</h2>
-
-            {/* Formato de Logo */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {formatos.map((formato) => (
                 <div
                   key={formato.id}
                   className={`border rounded-md p-3 text-center cursor-pointer transition-all duration-200
-                  ${formulario.nombreLogo === formato.id ? "ring-2 ring-green-600" : "hover:shadow-md"}`}
+      ${formulario.nombreLogo === formato.id ? "ring-2 ring-green-600" : "hover:shadow-md"}`}
                   onClick={() => handleInputChange("nombreLogo", formato.id)}
                 >
-                  <img src={formato.imagen} alt={formato.label} className="w-full h-24 object-contain mb-2" />
-                  <RadioButton
-                    inputId={formato.id}
-                    name="nombreLogo"
-                    value={formato.id}
-                    onChange={(e) => handleInputChange("nombreLogo", e.value)}
-                    checked={formulario.nombreLogo === formato.id}
+                  <img
+                    src={formato.imagen}
+                    alt={formato.label}
+                    className="w-full h-24 object-contain mb-2"
                   />
-                  <label htmlFor={formato.id} className="ml-2">{formato.label}</label>
+                  <div className="flex items-center justify-center">
+                    <RadioButton
+                      inputId={formato.id}
+                      name="nombreLogo"
+                      value={formato.id}
+                      onChange={(e) => handleInputChange("nombreLogo", e.value)}
+                      checked={formulario.nombreLogo === formato.id}
+                    />
+                    <label htmlFor={formato.id} className="ml-2">{formato.label}</label>
+                  </div>
+
+                  {/* Mostrar checkbox SOLO si el formato es 2 o 4 */}
+                  {(formato.id === "formato2" || formato.id === "sinformato") && formulario.nombreLogo === formato.id && (
+                    <div className="mt-3 flex items-center justify-center">
+                      <Checkbox
+                        inputId={`datosCliente-${formato.id}`}
+                        checked={!!formulario.datosCliente}
+                        onChange={(e) => handleInputChange("datosCliente", e.checked)}
+                      />
+                      <label htmlFor={`datosCliente-${formato.id}`} className="ml-2">
+                        Datos del cliente
+                      </label>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
+
 
             {/* Descripción del Ticket */}
             <div className="md:col-span-2 flex flex-col gap-2 pt-6">

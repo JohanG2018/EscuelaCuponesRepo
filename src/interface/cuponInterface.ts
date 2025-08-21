@@ -1,17 +1,20 @@
+export type TipoCombinacion = "G" | "SG" | "P" | "I" | "M";
+
 export interface Local {
-  id: string | number;
-  local: string;
+  id?: string | number;
+  local?: string;
   establecimiento?: string;
   almacen?: string;
   nombre?: string;
+  activo?: string | boolean
 }
 
 export interface Producto {
   itemid: string;
   nombre: string;
-  categoria: string;
-  subcategoria: string;
-  proveedor: string;
+  categoria?: string;
+  subcategoria?: string;
+  proveedor?: string;
 }
 
 export interface Proveedor {
@@ -29,9 +32,20 @@ export interface Subcategoria {
   id: string;
   name: string;
 }
+export interface Combinacion {
+  itemId?: any;
+  excluida?: boolean | string;
+  key: string;
+  nombre: string;
+  tipo: TipoCombinacion;
+  valor: number;
+  cantidad: number;
+  combinada?:boolean | string;
+}
+
 
 export interface Cupon {
-  id: number;
+  id: number | string;
   titulo: string;
   descripcion: string;
   descripcionTicket: string;
@@ -40,38 +54,30 @@ export interface Cupon {
   fechaFin: Date | string;
   estado: boolean | number | string;
   tipoAplicacion: string;
-  valorMinimo: number;
-  esRecurrente: boolean | number | string;
+  valorMinimo: number |string;
+  esRecurrente: boolean | string;
   idTipoFormato: number | string;
   logo: File | string;
   nombreLogo: string;
   tipoAmbiente: string;
-  esConsumidorFinal: boolean | number | string;
-  aplicaLocales: boolean | number | string;
-  combinarCondiciones: boolean | number | string;
+  esConsumidorFinal: boolean | string;
+  aplicaLocales: boolean | string;
+  combinarCondiciones: boolean | string;
   cantidadProductos: number | string;
-  criterio:boolean;
+  criterio:boolean | string;
+  
   formatoLogo:string
   legal:string
   factura:boolean
+    datosCliente: false,           
+
   locales: Local[];
   categorias: Categoria[];
   subcategorias: Subcategoria[];
   productos: Producto[];
   productosExcluidos: Producto[];
   proveedores: Proveedor[];
-
-  // Tabla
   combinaciones: Combinacion[];
 }
 
 
-export interface Combinacion {
-  itemId: any;
-  excluida: boolean;
-  key: string;
-  nombre: string;
-  tipo: string;
-  valor: number;
-  cantidad: number;
-}

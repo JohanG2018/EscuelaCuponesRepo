@@ -1,7 +1,6 @@
 import type { Cupon, Local, Producto, Proveedor, Categoria } from "../interface/cuponInterface";
 
 export const API_BASE = "http://localhost:8080/wordpress/wp-json/delportal/v1";
-
 const cache = new Map<string, Producto[]>();
 
 async function fileToBase64(file: File): Promise<string> {
@@ -15,7 +14,79 @@ async function fileToBase64(file: File): Promise<string> {
     r.readAsDataURL(file);
   });
 }
+function toDate(value: any): string {
+  if (!value) return "";
+  return new Date(value).toISOString();
+}
+function origenToTipo(origen: any): "G" | "SG" | "P" | "I" | "M" {
+  const s = String(origen ?? "").trim().toUpperCase();
+  // si el backend ya manda G/SG/P/I, esto lo deja igual
+  if (s === "G" || s === "SG" || s === "P" || s === "I" || s === "M") return s as any;
 
+  // por si llega texto descriptivo
+  if (s.includes("CATEGORIA")) return "G";
+  if (s.includes("SUB")) return "SG";
+  if (s.includes("PROV")) return "P";
+  if (s.includes("PROD") || s.includes("ITEM")) return "I";
+  return "M"; // mixto / fallback
+}
+
+function toBool01(v: any): boolean {
+  const s = String(v ?? "").trim().toLowerCase();
+  return v === true || v === 1 || s === "1" || s === "true" || s === "sí" || s === "si";
+}
+
+function mapCupon(raw: any): Cupon  {
+  const cab = raw.cabecera ?? {};
+  const detalle: any[] = Array.isArray(raw.detalle) ? raw.detalle : [];
+
+  const combinaciones = detalle.map((item: any, idx: number) => ({
+    key: `${item.codigoItem ?? idx}`,                    // clave estable para DataTable
+    itemId: String(item.codigoItem ?? ""),               // el id real del ítem
+    nombre: String(item.nombreItem ?? ""),               // mostrado en “Nombre”
+    tipo: origenToTipo(item.origen),                     // G | SG | P | I | M
+    cantidad: Number(item.cantidad ?? 0),
+    valor: Number(item.valor ?? 0),
+    excluida: toBool01(item.esExcluido),                 // "1"/"0" → boolean
+    combinada: toBool01(item.esCombinado),               // "1"/"0" → boolean
+  }));
+
+  return {
+    id: Number(cab.id) || 0,
+    titulo: cab.titulo ?? "",
+    descripcion: cab.descripcion ?? "",
+    descripcionTicket: cab.textoCupon ?? cab.descripcionTicket ?? "",
+    textoLegal: cab.textoLegal ?? "",
+    fechaInicio: toDate(cab.fechaInicio),
+    fechaFin: toDate(cab.fechaFin),
+    estado: cab.estado,                    // "Activo"/"Inactivo"
+    tipoAplicacion: cab.tipoAplicacion ?? "",
+    valorMinimo: Number(cab.montoMinimo ?? 0),
+    esRecurrente: toBool01(cab.esRecurrente), // "Sí"/"No" → boolean
+    idTipoFormato: cab.idTipoFormato ?? "",
+    logo: cab.logo ?? "",
+    nombreLogo: cab.nombreLogo ?? "",
+    tipoAmbiente: cab.ambiente ?? "",
+    esConsumidorFinal: cab.esConsumidorFinal ?? "No",
+    aplicaLocales: cab.aplicaLocales ?? "No",
+    combinarCondiciones: cab.combinarCondiciones ?? "No",
+    cantidadProductos: cab.cantidadProductos ?? 0,
+    formatoLogo: cab.formatoLogo ?? "",
+    legal: cab.legal ?? "",
+    factura: toBool01(cab.factura ?? false),
+
+    // listas (si en el futuro el backend las envía)
+    locales: normalizeLocalesFromCupon(raw.locales),
+    categorias: raw.categorias ?? [],
+    subcategorias: raw.subcategorias ?? [],
+    productos: raw.productos ?? [],
+    productosExcluidos: raw.productosExcluidos ?? [],
+    proveedores: raw.proveedores ?? [],
+
+    // 🔴 ahora sí normalizada
+    combinaciones,
+  };
+}
 
 export async function buildCuponXML(formulario: Cupon): Promise<string> {
   const esc = (s: any) =>
@@ -26,12 +97,23 @@ export async function buildCuponXML(formulario: Cupon): Promise<string> {
       .replace(/"/g, "&quot;");
 
   const formatDateTimeToSQL = (date: Date | string): string => {
-  const d = new Date(date);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-};
-const logoUrl = formulario.logo   // puede ser File o string base64 (o incluso url ya)
- 
+    const d = new Date(date);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  };
+
+  // Normaliza el logo: File -> base64 (sin el prefijo data:)
+  let logoStr = "";
+  if (formulario.logo instanceof File) {
+    const b64 = await fileToBase64(formulario.logo);
+    logoStr = (b64.includes(",") ? b64.split(",")[1] : b64).trim();
+  } else if (typeof formulario.logo === "string") {
+    // puede venir ya en base64 o vacío
+    logoStr = formulario.logo.includes(",") ? formulario.logo.split(",")[1].trim() : formulario.logo.trim();
+  }
+
+  const combos = Array.isArray(formulario.combinaciones) ? formulario.combinaciones : [];
+
   return `
 <req>
   <Cabecera>
@@ -44,73 +126,61 @@ const logoUrl = formulario.logo   // puede ser File o string base64 (o incluso u
     <fechaFin>${formatDateTimeToSQL(formulario.fechaFin!)}</fechaFin>
     <estado>${formulario.estado ? 1 : 0}</estado>
     <tipoAplicacion>${esc(formulario.tipoAplicacion)}</tipoAplicacion>
-    <montoMinimo>${formulario.valorMinimo || 0}</montoMinimo>
-    <esRecurrente>${formulario.esRecurrente ? 1 : 0}</esRecurrente>
+    <montoMinimo>${Number(formulario.valorMinimo || 0)}</montoMinimo>
+    <esRecurrente>${formulario.criterio ? 1 : 0}</esRecurrente>
     <idTipoFormato>${esc(formulario.idTipoFormato)}</idTipoFormato>
-    <logo>${esc(logoUrl)}</logo>
+    <logo>${esc(logoStr)}</logo>
     <nombreLogo>${esc(formulario.nombreLogo)}</nombreLogo>
     <ambiente>${esc(formulario.tipoAmbiente)}</ambiente>
     <esConsumidorFinal>${formulario.esConsumidorFinal ? 1 : 0}</esConsumidorFinal>
-    <aplicaLocales>${formulario.locales?.length ? 1 : 0}</aplicaLocales>
+    <aplicaLocales>${(formulario.locales?.length || 0) > 0 ? 1 : 0}</aplicaLocales>
     <combinarCondiciones>${formulario.combinarCondiciones ? 1 : 0}</combinarCondiciones>
-    <cantidadProductos>${formulario.cantidadProductos || 0}</cantidadProductos>
+    <cantidadProductos>${Number(formulario.cantidadProductos || combos.length || 0)}</cantidadProductos>
   </Cabecera>
   <Detalle>
-    ${Array.isArray(formulario.combinaciones) ? formulario.combinaciones.map((c) => `
+    ${combos.map(c => `
     <Item>
-      <codigoItem>${esc(c.key)}</codigoItem>
+      <codigoItem>${esc(c.key ?? c.itemId)}</codigoItem>
       <nombreItem>${esc(c.nombre)}</nombreItem>
       <origen>${esc(c.tipo)}</origen>
-      <esExcluido>${formulario.combinarCondiciones ? 1 : 0}</esExcluido>
-      <esCombinado>${formulario.combinarCondiciones ? 1 : 0}</esCombinado>
-      <cantidad>${c.cantidad || 0}</cantidad>
-      <valor>${c.valor || 0}</valor>
-    </Item>`).join(""):""}
+      <esExcluido>${c.excluida ? 1 : 0}</esExcluido>
+      <esCombinado>${c.combinada ? 1 : 0}</esCombinado>
+      <cantidad>${Number(c.cantidad || 0)}</cantidad>
+      <valor>${Number(c.valor || 0)}</valor>
+    </Item>`).join("")}
   </Detalle>
   <Locales>
-    ${(formulario.locales || []).map((l) => `
+    ${(formulario.locales || []).map(l => `
     <Local>
-      <establecimiento>${esc(l.establecimiento)}</establecimiento>
-      <almacen>${esc(l.almacen)}</almacen>
+      <establecimiento>${esc(l.establecimiento ?? "")}</establecimiento>
+      <almacen>${esc(l.almacen ?? "")}</almacen>
       <activo>1</activo>
     </Local>`).join("")}
   </Locales>
-</req>
-`.trim();
+</req>`.trim();
 }
 
-function normalizeLocales(raw: any[]): Local[] {
-  return raw.map((it: any) => ({
-    id: it.id ?? it.almacen ?? it.establecimiento ?? it.nombre ?? it.local ?? `${Date.now()}-${Math.random()}`,
-    local: it.local ?? it.nombre ?? String(it.almacen ?? it.establecimiento ?? "Local"),
-    establecimiento: it.establecimiento,
-    almacen: it.almacen,
-    nombre: it.nombre,
+function normalizeLocalesFromCupon(raw: any[]): Local[] {
+  return (raw || []).map((l: any, i: number) => ({
+    id: `${l.establecimiento ?? ""}-${l.almacen ?? ""}` || String(i),
+    local: l.nombre || `${l.establecimiento ?? ""}-${l.almacen ?? ""}`, // <- lo que se ve en el chip
+    establecimiento: l.establecimiento ?? "",
+    almacen: l.almacen ?? "",
+    nombre: l.nombre ?? undefined,
   }));
 }
-export async function fetchCupones(opts?: { signal?: AbortSignal }): Promise<Cupon[]> {
-  const res = await fetch(`${API_BASE}/listado_cupones_marketing`, {
-    method: "GET",
-    signal: opts?.signal,
-  });
 
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`Error al cargar cupones (${res.status}): ${txt || res.statusText}`);
+export async function fetchCupones(signal?: AbortSignal): Promise<Cupon[]> {
+  const res = await fetch(`${API_BASE}/listado_cupones_marketing`, { signal });
+  const json = await res.json();
+
+  if (json.status !== "success") {
+    throw new Error(json.message || "Error al cargar cupones");
   }
 
-  const json = await res.json().catch(() => null);
-  const raw = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
-
-  return raw.map((c: any) => ({
-    id: String(c.id ?? ""),
-    titulo: String(c.titulo ?? ""),
-    tipoAplicacion: String(c.tipoAplicacion ?? ""),
-    fechaInicio: String(c.fechaInicio ?? ""),
-    fechaFin: String(c.fechaFin ?? ""),
-    estado: String(c.estado ?? ""),
-  }));
+  return (json.data || []).map(mapCupon);
 }
+
 export async function postCuponXML(reqXML: string) {
   const res = await fetch(`${API_BASE}/procesar_xml_form`, {
     method: "POST",
@@ -167,7 +237,7 @@ export async function fetchLocales(like?: string): Promise<Local[]> {
 
   const json = await res.json().catch(() => null);
   const raw = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
-  return normalizeLocales(raw);
+  return normalizeLocalesFromCupon(raw);
 }
 
 
@@ -185,7 +255,6 @@ export async function searchProductos(q = "", limit = 20): Promise<Producto[]> {
   if (!res.ok) throw new Error(`Error buscando productos: ${res.status} ${res.statusText}`);
 
   const json = await res.json().catch(() => null);
-
   if (!json || (json.status !== "success" && !Array.isArray(json))) {
     throw new Error("Respuesta inesperada del servidor.");
   }
@@ -256,17 +325,15 @@ export async function fetchSubCategorias(like?: string): Promise<Categoria[]> {
     name: item.nombre || "",
   }));
 }
-export async function fetchCuponById(id: number): Promise<Cupon> {
-  const res = await fetch(`${API_BASE}/listado_cupones_marketing?id=${id}`, {
-    method: "GET",
-  });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`Error al cargar cupón (${res.status}): ${txt || res.statusText}`);
+export async function fetchCuponById(id: number, signal?: AbortSignal): Promise<Cupon | null> {
+  const res = await fetch(`${API_BASE}/listado_cupones_marketing?id=${id}`, { signal });
+  const json = await res.json();
+
+  if (json.status !== "success") {
+    return null;
   }
-  const json = await res.json().catch(() => null);
-  console.log(json)
-  return json ?? null;
+
+  return mapCupon(json.data);
 }
 
 export async function updateCuponXML(xml: string, signal?: AbortSignal) {

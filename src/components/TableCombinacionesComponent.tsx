@@ -3,19 +3,8 @@ import { Column } from "primereact/column";
 import { Button } from "primereact/button";
 import { InputNumber } from "primereact/inputnumber";
 import { Checkbox } from "primereact/checkbox";
+import { type Combinacion, type TipoCombinacion } from "../interface/cuponInterface";
 
-// Códigos
-export type TipoCombinacion = "G" | "SG" | "P" | "I" | "M";
-
-export interface Combinacion {
-  key: string;
-  nombre: string;
-  tipo: TipoCombinacion;
-  cantidad: number;
-  valor: number;
-  combinada: boolean;
-  excluida: boolean;
-}
 
 type Setter =
   | Combinacion[]
@@ -134,12 +123,12 @@ export default function TableCombinacionesComponent({
         rowsPerPageOptions={[5, 10, 20, 25]}
       >
         <Column field="nombre" header="Nombre" style={{ width: "28%" }} />
-        <Column header="Tipo" body={tipoBody} style={{ width: "18%" }} />
-        <Column header="Cantidad" body={cantidadBody} style={{ width: "16%" }} />
-        <Column header="Valor" body={valorBody} style={{ width: "16%" }} />
-        <Column header="Combinada" body={combinadaBody} style={{ width: "11%" }} />
-        <Column header="Excluida" body={excluidaBody} style={{ width: "11%" }} />
-        <Column header="Acciones" body={accionesBody} style={{ width: "10%" }} />
+        <Column header="Tipo" align={"center"} body={tipoBody} style={{ width: "18%" }} />
+        <Column header="Cantidad" align={"center"} body={cantidadBody} style={{ width: "16%" }} />
+        <Column header="Valor" align={"center"} body={valorBody} style={{ width: "16%" }} />
+        <Column header="Combinada" align={"center"} body={combinadaBody} style={{ width: "11%" }} />
+        <Column header="Excluida" align={"center"} body={excluidaBody} style={{ width: "11%" }} />
+        <Column header="Acciones" align={"center"} body={accionesBody} style={{ width: "10%" }} />
       </DataTable>
     </div>
   );

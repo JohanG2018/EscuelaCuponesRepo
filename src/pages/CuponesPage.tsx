@@ -17,7 +17,7 @@ const CuponesPage: React.FC = () => {
     (async () => {
       try {
         setLoading(true);
-        const data = await fetchCupones({ signal: ctrl.signal });
+        const data = await fetchCupones();
         setCupons(data);
       } catch (err: any) {
         if (err?.name !== "AbortError") {
