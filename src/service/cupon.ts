@@ -1,6 +1,6 @@
-import type { Cupon, Local, Producto, Proveedor, Categoria,TipoCombinacion } from "../interface/cuponInterface";
+import type { Cupon, Local, Producto, Proveedor, Categoria, TipoCombinacion } from "../interface/cuponInterface";
 
-export const API_BASE = "http://localhost/appdelportal/wp-json/delportal/v1";
+export const API_BASE = "http://localhost:8080/wordpress/wp-json/delportal/v1";
 const cache = new Map<string, Producto[]>();
 
 async function fileToBase64(file: File): Promise<string> {
