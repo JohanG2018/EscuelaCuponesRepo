@@ -74,6 +74,7 @@ function mapCupon(raw: any): Cupon {
     formatoLogo: cab.formatoLogo ?? "",
     legal: cab.legal ?? "",
     factura: toBool01(cab.factura ?? false),
+    datosCliente: cab.incluirDatosCliente,
 
     // listas (si en el futuro el backend las envía)
     locales: normalizeLocalesFromCupon(raw.locales),
@@ -136,6 +137,7 @@ export async function buildCuponXML(formulario: Cupon): Promise<string> {
     <aplicaLocales>${(formulario.locales?.length || 0) > 0 ? 1 : 0}</aplicaLocales>
     <combinarCondiciones>${formulario.combinarCondiciones ? 1 : 0}</combinarCondiciones>
     <cantidadProductos>${Number(formulario.cantidadProductos || combos.length || 0)}</cantidadProductos>
+    <incluirDatosCliente>${Number(formulario.datosCliente)}</incluirDatosCliente>
   </Cabecera>
   <Detalle>
     ${combos.map(c => `
@@ -154,6 +156,7 @@ export async function buildCuponXML(formulario: Cupon): Promise<string> {
     <Local>
       <establecimiento>${esc(l.establecimiento ?? "")}</establecimiento>
       <almacen>${esc(l.almacen ?? "")}</almacen>
+      <nombre>${esc(l.nombre ?? "")}</nombre>
       <activo>1</activo>
     </Local>`).join("")}
   </Locales>
