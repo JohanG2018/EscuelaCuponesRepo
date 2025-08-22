@@ -1,6 +1,6 @@
 import type { Cupon, Local, Producto, Proveedor, Categoria } from "../interface/cuponInterface";
 
-export const API_BASE = "http://localhost:8080/wordpress/wp-json/delportal/v1";
+export const API_BASE = "http://localhost/appdelportal/wp-json/delportal/v1";
 const cache = new Map<string, Producto[]>();
 
 async function fileToBase64(file: File): Promise<string> {
@@ -8,7 +8,7 @@ async function fileToBase64(file: File): Promise<string> {
     const r = new FileReader();
     r.onload = () => {
       const s = (r.result as string) || "";
-      resolve(s.indexOf(",") >= 0 ? s.substring(s.indexOf(",")+1) : s);
+      resolve(s.indexOf(",") >= 0 ? s.substring(s.indexOf(",") + 1) : s);
     };
     r.onerror = reject;
     r.readAsDataURL(file);
@@ -36,7 +36,7 @@ function toBool01(v: any): boolean {
   return v === true || v === 1 || s === "1" || s === "true" || s === "sí" || s === "si";
 }
 
-function mapCupon(raw: any): Cupon  {
+function mapCupon(raw: any): Cupon {
   const cab = raw.cabecera ?? {};
   const detalle: any[] = Array.isArray(raw.detalle) ? raw.detalle : [];
 
@@ -380,7 +380,7 @@ export async function updateCuponXML(xml: string, signal?: AbortSignal) {
 }
 
 export async function cambiarEstadoCupon(id: number | string, activo: boolean) {
-  const nuevoEstado = activo ? 1 : 0; 
+  const nuevoEstado = activo ? 1 : 0;
 
   const xml = `
     <req>
@@ -393,7 +393,7 @@ export async function cambiarEstadoCupon(id: number | string, activo: boolean) {
     method: 'PUT',
     headers: { 'Content-Type': 'text/xml' },
     body: xml,
-    
+
   });
 
   const text = await res.text();
