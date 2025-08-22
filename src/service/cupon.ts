@@ -1,4 +1,4 @@
-import type { Cupon, Local, Producto, Proveedor, Categoria } from "../interface/cuponInterface";
+import type { Cupon, Local, Producto, Proveedor, Categoria,TipoCombinacion } from "../interface/cuponInterface";
 
 export const API_BASE = "http://localhost/appdelportal/wp-json/delportal/v1";
 const cache = new Map<string, Producto[]>();
@@ -18,7 +18,7 @@ function toDate(value: any): string {
   if (!value) return "";
   return new Date(value).toISOString();
 }
-function origenToTipo(origen: any): "G" | "SG" | "P" | "I" | "M" {
+function origenToTipo(origen: TipoCombinacion) {
   const s = String(origen ?? "").trim().toUpperCase();
   // si el backend ya manda G/SG/P/I, esto lo deja igual
   if (s === "G" || s === "SG" || s === "P" || s === "I" || s === "M") return s as any;

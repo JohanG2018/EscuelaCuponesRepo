@@ -12,7 +12,7 @@ import { InputTextarea } from "primereact/inputtextarea";
 import { Calendar } from "primereact/calendar";
 import { RadioButton } from "primereact/radiobutton";
 import MultiSelect from "../components/MultiselectComponent";
-import TableCombinacionesComponent  from "../components/TableCombinacionesComponent";
+import TableCombinacionesComponent from "../components/TableCombinacionesComponent";
 import {
   buildCuponXML,
   postCuponXML,
@@ -68,11 +68,11 @@ const FormCuponPage: React.FC = () => {
     estado: true,
     tipoAplicacion: "",
     valorMinimo: 0,
-    esRecurrente: false,
+    esRecurrente: true,
     idTipoFormato: 1,
     logo: "",
     nombreLogo: "formato1",
-    tipoAmbiente: "",
+    tipoAmbiente: "Pruebas",
     esConsumidorFinal: true,
     aplicaLocales: false,
     combinarCondiciones: false,
@@ -98,14 +98,8 @@ const FormCuponPage: React.FC = () => {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [locales, setLocales] = useState<Local[]>([]);
 
- 
-  const sameLocales = (a: Local[] = [], b: Local[] = []) => {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (keyLocal(a[i]) !== keyLocal(b[i])) return false;
-    }
-    return true;
-  };
+  const esGeneral = formulario.tipoAplicacion === "General";
+
 
   useEffect(() => {
     (async () => {
@@ -172,43 +166,43 @@ const FormCuponPage: React.FC = () => {
     return () => ctrl.abort();
   }, [id]);
   // Helpers recomendados (fuera del componente o memoizados)
-const keyLocal = (l: any) => String(l?.id ?? `${l?.codigo}-${l?.nombre}`);
+  const keyLocal = (l: any) => String(l?.id ?? `${l?.codigo}-${l?.nombre}`);
 
-// Compara arrays por clave estable (sin importar la referencia del objeto)
-const sameLocalesByKey = (a: any[] = [], b: any[] = []) => {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    if (keyLocal(a[i]) !== keyLocal(b[i])) return false;
-  }
-  return true;
-};
-
-useEffect(() => {
-  // Ejecuta solo cuando ambos están cargados
-  if (!locales.length || !formulario.locales?.length) return;
-
-  // Índice del catálogo por clave
-  const catalogByKey = new Map(locales.map(o => [keyLocal(o), o]));
-
-  // 1) Deduplica por clave
-  const seen = new Set<string>();
-  const deduped = [];
-  for (const sel of formulario.locales) {
-    const k = keyLocal(sel);
-    if (!seen.has(k)) {
-      seen.add(k);
-      deduped.push(sel);
+  // Compara arrays por clave estable (sin importar la referencia del objeto)
+  const sameLocalesByKey = (a: any[] = [], b: any[] = []) => {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (keyLocal(a[i]) !== keyLocal(b[i])) return false;
     }
-  }
+    return true;
+  };
 
-  // 2) Reconciliar: reemplazar por el objeto oficial del catálogo si existe
-  const reconciled = deduped.map(sel => catalogByKey.get(keyLocal(sel)) ?? sel);
+  useEffect(() => {
+    // Ejecuta solo cuando ambos están cargados
+    if (!locales.length || !formulario.locales?.length) return;
 
-  // 3) Evitar setState si no cambia nada (compara por claves)
-  if (!sameLocalesByKey(formulario.locales, reconciled)) {
-    setFormulario(prev => ({ ...prev, locales: reconciled }));
-  }
-}, [locales, formulario.locales]); 
+    // Índice del catálogo por clave
+    const catalogByKey = new Map(locales.map(o => [keyLocal(o), o]));
+
+    // 1) Deduplica por clave
+    const seen = new Set<string>();
+    const deduped = [];
+    for (const sel of formulario.locales) {
+      const k = keyLocal(sel);
+      if (!seen.has(k)) {
+        seen.add(k);
+        deduped.push(sel);
+      }
+    }
+
+    // 2) Reconciliar: reemplazar por el objeto oficial del catálogo si existe
+    const reconciled = deduped.map(sel => catalogByKey.get(keyLocal(sel)) ?? sel);
+
+    // 3) Evitar setState si no cambia nada (compara por claves)
+    if (!sameLocalesByKey(formulario.locales, reconciled)) {
+      setFormulario(prev => ({ ...prev, locales: reconciled }));
+    }
+  }, [locales, formulario.locales]);
 
   const handleInputChange = <K extends keyof Cupon>(field: K, value: Cupon[K]) => {
     if (field === "fechaInicio") {
@@ -342,12 +336,22 @@ useEffect(() => {
   }
   const handleSubmit = async () => {
     try {
-      // Construir el XML SOLO una vez.
+      const esGeneral = formulario.tipoAplicacion === "General";
+
       const xmlData = await buildCuponXML({
-        ...formulario,
-        id: editingId || 0,          // si estás editando, incluye el id para <idCupon>
-        combinaciones,               // usa el estado real de la tabla
-      });
+  ...formulario,
+  id: editingId || 0,
+
+  // Estos se excluyen si es "General"
+  combinaciones: esGeneral ? [] : combinaciones,
+  categorias: esGeneral ? [] : formulario.categorias,
+  subcategorias: esGeneral ? [] : formulario.subcategorias,
+  proveedores: esGeneral ? [] : formulario.proveedores,
+  productos: esGeneral ? [] : formulario.productos,
+  productosExcluidos: esGeneral ? [] : formulario.productosExcluidos,
+  valorMinimo: esGeneral ? 0 : formulario.valorMinimo,
+  esRecurrente: esGeneral ? null : formulario.esRecurrente,
+});
 
       // Enviar (PUT si edita, POST si crea)
       const resp = editingId
@@ -428,6 +432,7 @@ useEffect(() => {
     e.options.clear();
   }
 
+  const modoEditar = !!formulario.id; // o como tú determines si es edición
 
 
   const formatos = [
@@ -451,12 +456,36 @@ useEffect(() => {
       {loading ? (
         <div className="flex flex-col justify-center items-center py-12 text-gray-600 gap-3">
           <ProgressSpinner style={{ width: '40px', height: '40px' }} strokeWidth="4" />
-          <span className="text-sm font-medium">Cargando Información del cupón...</span>
+          <span className="text-sm font-medium">Cargando el cupón...</span>
         </div>
       ) : (
         <>
-          <div className="px-5">
-            <Button icon="pi pi-arrow-left" onClick={() => navigate("/")} />
+          <div className="flex flex-col ">
+            <div className="flex justify-between">
+              <Button icon="pi pi-arrow-left" onClick={() => navigate("/")} />
+              <div className="md:col-span-2 flex justify-end mt-6 space-x-4">
+                <Button
+                  label={editingId ? "Enviar a producción" : "Enviar para pruebas"}
+                  onClick={handleSubmit}
+                  raised
+                  loading={loading}
+                  icon={editingId ? "pi pi-save" : "pi pi-check"}
+                  className="p-button-success p-4 bg-green-500 hover:bg-green-600 text-white"
+
+                />
+                <Button
+                  label="Cancelar"
+                  type="button"
+                  onClick={() => navigate("/admin/cupon")}
+                  raised
+                  icon="pi pi-times"
+                  className="p-button-warning p-4 bg-red-500 hover:bg-red-600 text-white"
+
+                />
+              </div>
+
+            </div>
+
           </div>
 
           {/* A partir de aquí inicia el render visual (secciones del formulario) */}
@@ -464,34 +493,59 @@ useEffect(() => {
             <h2 className="text-xl font-semibold border-b pb-1 mb-4">Información General</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex flex-col gap-2">
-                <label htmlFor="titulo" className="font-semibold">Título</label>
+                <label htmlFor="titulo" className="text-lg font-semibold">Título <span className="text-sm">(Maximo 50 caracteres)</span></label>
                 <InputText id="titulo" value={formulario.titulo} onChange={(e) => handleInputChange("titulo", e.target.value)} maxLength={50} />
+
               </div>
 
               <div className="flex flex-col gap-2">
                 <label className="font-semibold">Ambiente</label>
                 <div className="flex gap-4">
-                  <RadioButton inputId="pruebas" name="tipoAmbiente" value="Pruebas" onChange={(e) => handleInputChange("tipoAmbiente", e.value)} checked={formulario.tipoAmbiente === "Pruebas"} />
-                  <label htmlFor="pruebas">Pruebas</label>
-                  <RadioButton
-                    inputId="produccion"
-                    name="tipoAmbiente"
-                    value="Produccion"
-                    onChange={(e) => handleInputChange("tipoAmbiente", e.value)}
-                    checked={formulario.tipoAmbiente === "Produccion"}
-                  />
-                  <label htmlFor="produccion">Producción</label>
+                  {!modoEditar && (
+                    <>
+                      <RadioButton
+                        inputId="pruebas"
+                        name="tipoAmbiente"
+                        value="Pruebas"
+                        onChange={(e) => handleInputChange("tipoAmbiente", e.value)}
+                        checked={formulario.tipoAmbiente === "Pruebas"}
+                      />
+                      <label htmlFor="pruebas">Pruebas</label>
+                    </>
+                  )}
+
+                  {modoEditar && (
+                    <>
+                      <RadioButton
+                        inputId="pruebas"
+                        name="tipoAmbiente"
+                        value="Pruebas"
+                        onChange={(e) => handleInputChange("tipoAmbiente", e.value)}
+                        checked={formulario.tipoAmbiente === "Pruebas"}
+                      />
+                      <label htmlFor="pruebas">Pruebas</label>
+                      <RadioButton
+                        inputId="produccion"
+                        name="tipoAmbiente"
+                        value="Produccion"
+                        onChange={(e) => handleInputChange("tipoAmbiente", e.value)}
+                        checked={formulario.tipoAmbiente === "Produccion"}
+                      />
+                      <label htmlFor="produccion">Producción</label>
+                    </>
+                  )}
                 </div>
               </div>
 
+
               <div className="md:col-span-2 flex flex-col gap-2">
-                <label htmlFor="descripcion" className="font-semibold">Descripción</label>
+                <label htmlFor="descripcion" className="text-lg font-semibold">Descripción <span className="text-sm">(Maximo 200 caracteres)</span></label>
                 <InputTextarea id="descripcion" value={formulario.descripcion} onChange={(e) => handleInputChange("descripcion", e.target.value)} rows={3} autoResize maxLength={200} />
               </div>
 
               <div className="md:col-span-2">
-                <Checkbox inputId="factura" checked={!!formulario.factura} 
-                onChange={(e) => handleInputChange("factura", !!e.checked )} />
+                <Checkbox inputId="factura" checked={!!formulario.factura}
+                  onChange={(e) => handleInputChange("factura", !!e.checked)} />
                 <label htmlFor="factura" className="ml-2">Permite Factura</label>
               </div>
 
@@ -505,12 +559,15 @@ useEffect(() => {
                         ? new Date(formulario.fechaInicio)
                         : formulario.fechaInicio
                       : null
+
                   }
-                  minDate={new Date()}
+
+                  minDate={new Date(new Date().setDate(new Date().getDate() + 1))}
                   onChange={(e) => handleInputChange("fechaInicio", e.value as Date)}
                   showTime
                   hourFormat="24"
                   showIcon
+                  hideOnDateTimeSelect
                 />
               </div>
 
@@ -534,6 +591,18 @@ useEffect(() => {
                   showTime
                   hourFormat="24"
                   showIcon
+                  hideOnDateTimeSelect
+                />
+              </div>
+              <div className="md:col-span-2 flex flex-col gap-2">
+                <label htmlFor="locales" className="font-semibold">Locales</label>
+                <MultiSelect
+                  options={locales}
+                  optionLabel="local"
+                  value={formulario.locales}
+                  onChange={(e: any) => handleInputChange("locales", e.value)}
+                  placeholder="Seleccione uno o varios locales"
+                  name="locales"
                 />
               </div>
             </div>
@@ -554,7 +623,16 @@ useEffect(() => {
 
               <div className="flex flex-col gap-2">
                 <label htmlFor="valorMinimo" className="font-semibold">Valor mínimo</label>
-                <InputNumber id="valorMinimo" min={0} value={formulario.valorMinimo} onValueChange={(e) => handleInputChange("valorMinimo", e.value ?? 0)} mode="currency" currency="USD" locale="en-US" />
+                <InputNumber
+                  id="valorMinimo"
+                  min={0}
+                  value={formulario.valorMinimo}
+                  onValueChange={(e) => handleInputChange("valorMinimo", e.value ?? 0)}
+                  mode="currency"
+                  currency="USD" l
+                  ocale="en-US"
+                  disabled={esGeneral}
+                />
               </div>
 
               <div className="flex gap-4">
@@ -564,6 +642,7 @@ useEffect(() => {
                   value={true}
                   onChange={(e) => handleInputChange("esRecurrente", true)}
                   checked={formulario.esRecurrente === true}
+                  disabled={esGeneral}
                 />
                 <label htmlFor="criterio1">Recurrente por cada valor</label>
 
@@ -573,21 +652,12 @@ useEffect(() => {
                   value={false}
                   onChange={(e) => handleInputChange("esRecurrente", false)}
                   checked={formulario.esRecurrente === false}
+                  disabled={esGeneral}
                 />
                 <label htmlFor="criterio2">Valor mínimo de compra</label>
               </div>
             </div>
-            <div className="md:col-span-2 flex flex-col gap-2">
-              <label htmlFor="locales" className="font-semibold">Locales</label>
-              <MultiSelect
-                options={locales}
-                optionLabel="local"
-                value={formulario.locales}
-                onChange={(e: any) => handleInputChange("locales", e.value)}
-                placeholder="Seleccione uno o varios locales"
-                name="locales"
-              />
-            </div>
+
 
           </section>
           <section className="p-5">
@@ -604,6 +674,8 @@ useEffect(() => {
                   onChange={(e) => handleInputChange("categorias", e.value)}
                   placeholder="Seleccione categorías"
                   filter
+                  disabled={esGeneral}
+
                 />
               </div>
 
@@ -617,6 +689,7 @@ useEffect(() => {
                   onChange={(e) => handleInputChange("subcategorias", e.value)}
                   placeholder="Seleccione subcategorías"
                   filter
+                  disabled={esGeneral}
                 />
               </div>
 
@@ -631,6 +704,7 @@ useEffect(() => {
                   completeMethod={buscarProveedores}
                   onChange={(e) => handleInputChange("proveedores", e.value)}
                   placeholder="Seleccione proveedores"
+                  disabled={esGeneral}
                 />
               </div>
 
@@ -645,6 +719,7 @@ useEffect(() => {
                   completeMethod={buscarProductos}
                   onChange={(e) => handleInputChange("productos", e.value)}
                   placeholder="Seleccione productos"
+                  disabled={esGeneral}
                 />
 
               </div>
@@ -661,6 +736,7 @@ useEffect(() => {
                 completeMethod={buscarProductosExcluidos}
                 onChange={(e) => handleInputChange("productosExcluidos", e.value)}
                 placeholder="Seleccione productos"
+                disabled={esGeneral}
               />
             </div>
 
@@ -674,6 +750,7 @@ useEffect(() => {
                   onClick={onAgregarSeleccionados}
                   raised
                   className="p-3 bg-green-500 hover:bg-green-600 text-white"
+                  disabled={esGeneral}
                 />
               </div>
               <TableCombinacionesComponent
@@ -741,12 +818,13 @@ useEffect(() => {
 
             {/* Descripción del Ticket */}
             <div className="md:col-span-2 flex flex-col gap-2 pt-6">
-              <label className="font-semibold" htmlFor="descripcionTicket">Descripción en el Ticket</label>
+              <label className=" text-lg font-semibold" htmlFor="descripcionTicket">Descripción en el Ticket <span className="text-sm">(Maximo 50 caracteres)</span></label>
               <InputTextarea
                 id="descripcionTicket"
                 value={formulario.descripcionTicket}
                 onChange={(e) => handleInputChange("descripcionTicket", e.target.value)}
                 rows={3}
+                maxLength={50}
                 autoResize
                 placeholder="Ingrese el texto que aparecerá en el ticket"
               />
@@ -767,7 +845,7 @@ useEffect(() => {
 
             {/* Texto Legal */}
             <div className="mt-6 flex flex-col gap-2 md:w-2/3">
-              <label htmlFor="textoLegal" className="font-semibold">Texto legal del cupón</label>
+              <label htmlFor="textoLegal" className="text-lg font-semibold">Texto legal del cupón <span className="text-sm">(Maximo 30 caracteres)</span></label>
               <InputTextarea
                 id="textoLegal"
                 value={formulario.textoLegal}
@@ -780,27 +858,7 @@ useEffect(() => {
             </div>
           </section>
 
-          {/* Botones Guardar / Cancelar */}
-          <div className="md:col-span-2 flex justify-end mt-6 space-x-4 p-5">
-            <Button
-              label={editingId ? "Actualizar" : "Guardar"}
-              onClick={handleSubmit}
-              raised
-              loading={loading}
-              icon={editingId ? "pi pi-save" : "pi pi-check"}
-              className="p-button-success p-4 bg-green-500 hover:bg-green-600 text-white"
 
-            />
-            <Button
-              label="Cancelar"
-              type="button"
-              onClick={() => navigate("/admin/cupon")}
-              raised
-              icon="pi pi-times"
-              className="p-button-warning p-4 bg-red-500 hover:bg-red-600 text-white"
-
-            />
-          </div>
         </>
       )}
     </div>

@@ -125,9 +125,10 @@ const CuponesTable: React.FC<Props> = ({
       value={rangoFechas as any}
       onChange={(e) => setRangoFechas(e.value as [Date | null, Date | null] | null)}
       selectionMode="range"
-      readOnlyInput
+      dateFormat="dd/mm/yyyy"
       placeholder="Rango de fechas"
       className="w-full"
+      
     />
   </div>
 
