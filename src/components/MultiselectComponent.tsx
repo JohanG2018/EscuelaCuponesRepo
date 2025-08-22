@@ -15,6 +15,7 @@ interface MultiselectComponentProps {
   className?: string;
   name?: string;
   optionValue?: string; // por si luego quieres manejar solo IDs
+  disabled?:boolean
 }
 
 const MultiselectComponent: React.FC<MultiselectComponentProps> = ({
@@ -29,6 +30,7 @@ const MultiselectComponent: React.FC<MultiselectComponentProps> = ({
   className,
   name,
   optionValue, // opcional
+  disabled=false,
 }) => {
   // Parachoques: siempre arrays
   const safeOptions = Array.isArray(options) ? options : [];
@@ -51,6 +53,7 @@ const MultiselectComponent: React.FC<MultiselectComponentProps> = ({
       emptyMessage="Sin resultados"
       // (opcional) evita que falle si el valor ya no existe en options
       showSelectAll={safeOptions.length > 0}
+      disabled={disabled}
     />
   );
 };

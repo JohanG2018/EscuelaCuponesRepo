@@ -44,11 +44,27 @@
 
 .p-radiobutton .p-radiobutton-box {
     border: 0.5px solid #807e7e;
-    background: #6ae489;
+    background: #f0f5f1;
     width: 20px;
     height: 20px;
-    color: #288d28;
+    color: #20d420;
     border-radius: 50%;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
     outline-color: transparent;
+}
+.p-radiobutton .p-radiobutton-box .p-radiobutton-icon {
+    width: 14px;
+    height: 14px;
+    transition-duration: 0.2s;
+    background-color: #23db3a;
+}
+button, input:where([type='button']), input:where([type='reset']), input:where([type='submit']) {
+    -webkit-appearance: button;
+    /* background-color: #00000000; */
+    background-image: none;
+}
+.p-paginator .p-paginator-pages .p-paginator-page.p-highlight {
+    background: #4ee213;
+    /*border-color: #1c63bf;*/
+    color: #000000;
 }
