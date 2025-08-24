@@ -80,7 +80,7 @@ const CuponesTable: React.FC<Props> = ({
           tooltip="Eliminar"
         /> */}
         <Button
-          icon={activo ? "pi pi-lock-open" : "pi pi-lock"}
+          icon={activo ? "pi-power-on" : "pi-power-off"}
           className="p-button-sm p-button-text"
           style={{ color: activo ? "green" : "yellowgreen" }}
           onClick={() => onToggleStatus(row)}

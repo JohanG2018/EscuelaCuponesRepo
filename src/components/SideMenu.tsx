@@ -1,6 +1,7 @@
 // src/components/SideMenu.tsx
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useState, type Dispatch, type SetStateAction } from "react";
+import { Button } from "primereact/button";
 
 type Props = {
   collapsed: boolean;
@@ -17,7 +18,12 @@ const caretCls =
 export default function SideMenu({ collapsed, setCollapsed }: Props) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  
 
+const handleLogout = () => {
+  localStorage.removeItem("logueado"); // Borra estado de sesión
+  navigate("/login"); // Redirige al login
+};
   // controla submenús abiertos
   const [open, setOpen] = useState<{ [k: string]: boolean }>({
     adminLogo: true, // abierto por defecto (cámbialo si quieres)
@@ -104,8 +110,14 @@ export default function SideMenu({ collapsed, setCollapsed }: Props) {
         </div>
       </nav>
 
-      
+
       <div className="mt-auto p-3 opacity-70 text-xs">
+        <Button
+          label={collapsed ? "" : "Cerrar sesión"}
+          icon="pi pi-sign-out"
+          className="p-button-text text-red-500 mt-auto w-full justify-start"
+          onClick={handleLogout}
+        />
         {!collapsed ? "LIRIS" : null}
       </div>
     </div>

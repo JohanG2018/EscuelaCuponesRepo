@@ -564,8 +564,7 @@ const FormCuponPage: React.FC = () => {
 
                   minDate={new Date(new Date().setDate(new Date().getDate() + 1))}
                   onChange={(e) => handleInputChange("fechaInicio", e.value as Date)}
-                  showTime
-                  hourFormat="24"
+                  
                   showIcon
                   hideOnDateTimeSelect
                 />
@@ -588,8 +587,7 @@ const FormCuponPage: React.FC = () => {
                       : new Date()
                   }
                   onChange={(e) => handleInputChange("fechaFin", e.value as Date)}
-                  showTime
-                  hourFormat="24"
+                  
                   showIcon
                   hideOnDateTimeSelect
                 />
@@ -622,7 +620,7 @@ const FormCuponPage: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="valorMinimo" className="font-semibold">Valor mínimo</label>
+                <label htmlFor="valorMinimo" className="font-semibold">Valor de compra</label>
                 <InputNumber
                   id="valorMinimo"
                   min={0}
