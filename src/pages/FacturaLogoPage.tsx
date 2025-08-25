@@ -1,24 +1,33 @@
+//React
+import { useEffect, useRef, useState } from "react";
+//Prime React
 import { Button } from "primereact/button";
 import { Card } from "primereact/card";
-import { FileUpload, type FileUploadHandlerEvent } from "primereact/fileupload";
-import MultiSelect from "../components/MultiselectComponent";
 import { InputText } from 'primereact/inputtext';
-import { fetchLocales } from "../service/cupon";
-import type { Local } from "../interface/cuponInterface";
-import { useEffect, useRef, useState } from "react";
 import { Toast } from "primereact/toast";
+//Interface
+import type { Local } from "../interface/cuponInterface";
+//service
+import { fetchLocales } from "../service/cupon";
+import { buildXMLFactura, postFacturasLogo } from "../service/factura_logo";
+//Componentes
+import MultiSelect from "../components/MultiselectComponent";
+import Upload from "../components/Upload";
+
 
 export default function FacturaLogoPage() {
+
   const toast = useRef<Toast>(null);
 
   const [localesSeleccionados, setLocalesSeleccionados] = useState<Local[]>([]);
   const [locales, setLocales] = useState<Local[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [enviado, setEnviado] = useState<boolean>(false);
   const [nombreLogo, setNombreLogo] = useState<string>("");
+
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [registrosGuardados, setRegistrosGuardados] = useState<
-    { nombre: string; logo: File; locales: Local[] }[]
-  >([]);
+    { nombre: string; logo: File; locales: Local[] }[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -39,13 +48,7 @@ export default function FacturaLogoPage() {
     })();
   }, []);
 
-  const GuardarLogo = (e: FileUploadHandlerEvent) => {
-    const archivo = e.files?.[0];
-    if (!archivo) return;
-    setLogoFile(archivo);
-  };
-
-  const onGuardar = () => {
+  const onGuardar = async () => {
     if (!nombreLogo || !logoFile || localesSeleccionados.length === 0) {
       toast.current?.show({
         severity: "warn",
@@ -56,18 +59,57 @@ export default function FacturaLogoPage() {
       return;
     }
 
-    const nuevo = {
-      nombre: nombreLogo,
-      logo: logoFile,
-      locales: localesSeleccionados,
-    };
+    try {
+      setEnviado(true);
 
-    setRegistrosGuardados((prev) => [...prev, nuevo]);
+      // El back inyectará <logoUrl>, enviamos vacío aquí
+      const xml = buildXMLFactura({
+        nombreLogo,
+        logoUrl: "",
+        locales: localesSeleccionados,
+      });
 
-    // Limpiar
-    setNombreLogo("");
-    setLogoFile(null);
-    setLocalesSeleccionados([]);
+      const resp = await postFacturasLogo({
+        file: logoFile,
+        xmlString: xml,
+      });
+
+      if ((resp as any)?.status === "success") {
+        toast.current?.show({
+          severity: "success",
+          summary: "Guardado",
+          detail: "Logo asignado correctamente",
+          life: 3000,
+        });
+      } else {
+        toast.current?.show({
+          severity: "info",
+          summary: "Respuesta recibida",
+          detail: "Solicitud procesada",
+          life: 2500,
+        });
+      }
+
+      // Actualiza la vista previa local (3 cards por fila)
+      setRegistrosGuardados((prev) => [
+        ...prev,
+        { nombre: nombreLogo, logo: logoFile, locales: localesSeleccionados },
+      ]);
+
+      // Limpia form
+      setNombreLogo("");
+      setLogoFile(null);
+      setLocalesSeleccionados([]);
+    } catch (err: any) {
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: err?.message || "No se pudo guardar",
+        life: 4000,
+      });
+    } finally {
+      setEnviado(false);
+    }
   };
 
   return (
@@ -83,22 +125,20 @@ export default function FacturaLogoPage() {
           onChange={(e) => setNombreLogo(e.target.value)}
           placeholder="Ingrese el nombre del logo de la factura"
           className="w-full"
+          disabled={loading || enviado}
         />
       </div>
 
       {/* Subida de logo */}
       <div>
-        <label className="font-semibold block mb-2">Cargar nuevo logo (.bmp, máx 600px ancho)</label>
-        <FileUpload
-          name="logo"
-          accept=".bmp"
-          maxFileSize={5 * 1024 * 1024}
-          customUpload
-          uploadHandler={GuardarLogo}
-          chooseLabel="Seleccionar archivo"
-          uploadLabel="Cargar archivo"
-          cancelLabel="Cancelar"
-          emptyTemplate={<p className="m-0">Arrastre el archivo aquí o haga clic</p>}
+        <Upload
+          value={logoFile}
+          onChange={(file) => setLogoFile(file)}
+          toastRef={toast}
+          maxWidth={600}
+          maxSizeMB={5}
+          disabled={loading || enviado}
+          label="Cargar nuevo logo (.bmp, máx 600px ancho)"
         />
       </div>
 
@@ -113,6 +153,7 @@ export default function FacturaLogoPage() {
           placeholder="Seleccione uno o varios locales"
           maxSelectedLabels={100}
           className="w-full md:w-20rem"
+          disabled ={loading || enviado}
         />
       </div>
 

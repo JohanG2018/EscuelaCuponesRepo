@@ -55,7 +55,7 @@ export interface Cupon {
   estado: boolean | number | string;
   tipoAplicacion: string;
   valorMinimo: number |string;
-  esRecurrente: boolean | string;
+  esRecurrente: boolean | string | null;
   idTipoFormato: number | string;
   logo: File | string;
   nombreLogo: string;

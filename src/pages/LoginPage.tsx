@@ -10,23 +10,22 @@ export default function LoginPage() {
     const navigate = useNavigate();
 
     const validarLogin = () => {
-        localStorage.setItem("logueado", "true"); 
-        if (usuario === "1234567890" && password === "123456") {
+        localStorage.setItem("logueado", "true");
+        if (usuario === "1234" && password === "123456") {
             navigate("/admin/cupon");
         } else {
-            
+
         }
     };
 
     return (
         <div
-            className="min-h-screen bg-cover bg-center relative flex items-center justify-center"
-            style={{ backgroundImage: "url('public/fondo.jpg')" }} // cambia por tu imagen
+            className="min-h-screen bg-slate-200 flex items-center justify-center"
         >
             {/* Overlay */}
-            <div className="absolute inset-0 bg-black bg-opacity-20 z-0" />
+            <div className="" />
             {/* Formulario centrado */}
-            <div className="relative z-10 bg-white rounded shadow-lg w-[95%] max-w-lg">
+            <div className="relative z-10 bg-white rounded shadow-lg w-[95%] max-w-xl">
                 {/* Header verde con logo */}
                 <div className="bg-green-800 text-white p-6 text-center rounded-t">
                     <img
@@ -43,23 +42,30 @@ export default function LoginPage() {
                     }}
                     className="px-6 py-6 space-y-4"
                 >
-                    <h2 className="text-center text-sm font-bold text-green-800 mb-2">
+                    <h2 className="text-center text-lg font-bold text-green-800 mb-2">
                         Iniciar Sesión
                     </h2>
-                    <InputText
-                        className="w-full"
-                        placeholder="Usuario"
-                        value={usuario}
-                        onChange={(e) => setUsuario(e.target.value)}
-                    />
-                    <Password
-                        className="w-full"
-                        placeholder="Clave"
-                        feedback={false}
-                        toggleMask
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
+                    <div className="pb-3">
+                        <label htmlFor="">Usuario</label>
+                        <InputText
+                            className="w-full"
+                            placeholder="Ingrese su usuario"
+                            value={usuario}
+                            onChange={(e) => setUsuario(e.target.value)}
+                        />
+                    </div>
+                    <div className="">
+                        <label htmlFor="">Constraseña</label>
+                        <Password
+                            className="w-full"
+                            placeholder="Ingrese su constraseña"
+                            feedback={false}
+                            toggleMask
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
+                    </div>
+
                     <Button
                         label="Ingresar"
                         type="submit"

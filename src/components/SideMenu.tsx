@@ -9,9 +9,9 @@ type Props = {
 };
 
 const baseItem =
-  "flex items-center gap-3 px-3 py-2 rounded-lg transition hover:bg-green-300 dark:hover:bg-zinc-800";
+  "flex items-center gap-3 px-3 py-2 rounded-lg transition hover:bg-green-300 ";
 const activeItem =
-  "bg-primary-50 dark:bg-zinc-800 text-primary-700 dark:text-primary-300";
+  "bg-primary-50 text-primary-700 ";
 const caretCls =
   "pi pi-chevron-down text-xs transition-transform duration-200 ml-auto";
 
@@ -41,10 +41,10 @@ const handleLogout = () => {
   return (
     <div className="h-full flex flex-col">
       {/* Header + botón hamburguesa */}
-      <div className="flex items-center gap-2 p-3 border-b border-green-300 dark:border-zinc-800">
+      <div className="flex items-center gap-2 p-3 border-b border-green-300">
         <button
           aria-label="Toggle sidebar"
-          className="p-2 rounded-lg hover:bg-green-300 dark:hover:bg-zinc-800"
+          className="p-2 rounded-lg hover:bg-green-300 "
           onClick={() => setCollapsed((v) => !v)}
           title={collapsed ? "Expandir" : "Contraer"}
         >

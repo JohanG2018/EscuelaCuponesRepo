@@ -100,10 +100,10 @@ export async function buildCuponXML(formulario: Cupon): Promise<string> {
   const formatDateTimeToSQL = (date: Date | string): string => {
     const d = new Date(date);
     const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   };
 
-  // Normaliza el logo: File -> base64 (sin el prefijo data:)
+ 
   let logoStr = "";
   if (formulario.logo instanceof File) {
     const b64 = await fileToBase64(formulario.logo);

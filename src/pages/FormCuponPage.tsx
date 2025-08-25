@@ -5,7 +5,6 @@ import { ProgressSpinner } from "primereact/progressspinner";
 import { AutoComplete } from "primereact/autocomplete";
 import { Button } from "primereact/button";
 import { Checkbox } from "primereact/checkbox";
-import { FileUpload, type FileUploadHandlerEvent } from "primereact/fileupload";
 import { InputNumber } from "primereact/inputnumber";
 import { InputText } from "primereact/inputtext";
 import { InputTextarea } from "primereact/inputtextarea";
@@ -25,9 +24,6 @@ import {
   fetchCuponById
 } from "../service/cupon";
 import {
-  ArchivoBMP,
-  ArchivoMenor,
-  validarImagenMax,
   FechaInicio,
   fechaFin
 } from "../utils/Validacion"
@@ -42,6 +38,9 @@ import type {
   TipoCombinacion
 
 } from "../interface/cuponInterface";
+import { Dialog } from "primereact/dialog";
+import { ScrollTop } from "primereact/scrolltop";
+import Upload from "../components/Upload";
 
 const FormCuponPage: React.FC = () => {
   const navigate = useNavigate();
@@ -55,7 +54,7 @@ const FormCuponPage: React.FC = () => {
   const [combinaciones, setCombinaciones] = useState<Combinacion[]>([]);
   const [filteredProductos, setFilteredProductos] = useState<Producto[]>([]);
   const [filteredProveedores, setFilteredProveedores] = useState<Proveedor[]>([]);
-  const [subcategoriaOpts, setSubcategoriaOpts] = useState<Categoria[]>([]);
+  const [, setSubcategoriaOpts] = useState<Categoria[]>([]);
   const [filteredProductosExcluidos, setFilteredProductosExcluidos] = useState<Producto[]>([]);
   const [formulario, setFormulario] = useState<Cupon>({
     id: editingId || 0,
@@ -99,6 +98,12 @@ const FormCuponPage: React.FC = () => {
   const [locales, setLocales] = useState<Local[]>([]);
 
   const esGeneral = formulario.tipoAplicacion === "General";
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendigValue, setPendingValue] = useState<string | null>(null);
+  const isProduccion = formulario.tipoAmbiente === "Produccion";
+  const submitLabel = isProduccion ? "Enviar a producción" : "Enviar a pruebas";
+  const submitIcon = isProduccion ? "pi pi-cloud-upload" : "pi pi-send";
+  const submitClass = isProduccion ? "bg-green-500 hover:bg-green-600" : "bg-green-500 hover:bg-green-600";
 
 
   useEffect(() => {
@@ -203,7 +208,26 @@ const FormCuponPage: React.FC = () => {
       setFormulario(prev => ({ ...prev, locales: reconciled }));
     }
   }, [locales, formulario.locales]);
+  const AmbienteChange = (value: string) => {
+    if (value === "Produccion") {
+      setPendingValue(value)
+      setShowConfirm(true);
+    } else {
+      handleInputChange("tipoAmbiente", value)
+    }
+  }
+  const confirmacionChange = () => {
+    if (pendigValue) {
+      handleInputChange("tipoAmbiente", pendigValue)
+    }
+    setPendingValue(null);
+    setShowConfirm(false);
 
+  }
+  const cancelarChange = () => {
+    setPendingValue(null);
+    setShowConfirm(false);
+  }
   const handleInputChange = <K extends keyof Cupon>(field: K, value: Cupon[K]) => {
     if (field === "fechaInicio") {
       if (value && FechaInicio(value as Date)) {
@@ -339,19 +363,19 @@ const FormCuponPage: React.FC = () => {
       const esGeneral = formulario.tipoAplicacion === "General";
 
       const xmlData = await buildCuponXML({
-  ...formulario,
-  id: editingId || 0,
+        ...formulario,
+        id: editingId || 0,
 
-  // Estos se excluyen si es "General"
-  combinaciones: esGeneral ? [] : combinaciones,
-  categorias: esGeneral ? [] : formulario.categorias,
-  subcategorias: esGeneral ? [] : formulario.subcategorias,
-  proveedores: esGeneral ? [] : formulario.proveedores,
-  productos: esGeneral ? [] : formulario.productos,
-  productosExcluidos: esGeneral ? [] : formulario.productosExcluidos,
-  valorMinimo: esGeneral ? 0 : formulario.valorMinimo,
-  esRecurrente: esGeneral ? null : formulario.esRecurrente,
-});
+        // Estos se excluyen si es "General"
+        combinaciones: esGeneral ? [] : combinaciones,
+        categorias: esGeneral ? [] : formulario.categorias,
+        subcategorias: esGeneral ? [] : formulario.subcategorias,
+        proveedores: esGeneral ? [] : formulario.proveedores,
+        productos: esGeneral ? [] : formulario.productos,
+        productosExcluidos: esGeneral ? [] : formulario.productosExcluidos,
+        valorMinimo: esGeneral ? 0 : formulario.valorMinimo,
+        esRecurrente: esGeneral ? null : formulario.esRecurrente,
+      });
 
       // Enviar (PUT si edita, POST si crea)
       const resp = editingId
@@ -394,46 +418,7 @@ const FormCuponPage: React.FC = () => {
     }
   };
 
-
-  const handleUploadLogo = async (e: FileUploadHandlerEvent) => {
-    const archivo = e.files?.[0];
-    if (!archivo) return;
-
-    if (!ArchivoBMP(archivo)) {
-      toast.current?.show({
-        severity: "error",
-        summary: "Formato invalido",
-        detail: "Solo se permiten archivo .bmp",
-        life: 4000
-      })
-    }
-    if (!ArchivoMenor(archivo, 5 * 1024 * 1024)) {
-      toast.current?.show({
-        severity: "error",
-        summary: "Archivo demasiado grande",
-        detail: "Máximo permitido: 5MB",
-        life: 4000,
-      });
-      return;
-    }
-
-    const esvalido = validarImagenMax(archivo, 600);
-    if (!esvalido) {
-      toast.current?.show({
-        severity: "warn",
-        summary: "Imagen demasiado ancha",
-        detail: "El ancho máximo permitido es 600px",
-        life: 4000,
-      });
-      return;
-
-    }
-    handleInputChange("logo", archivo)
-    e.options.clear();
-  }
-
   const modoEditar = !!formulario.id; // o como tú determines si es edición
-
 
   const formatos = [
     { id: "formato1", imagen: "/img/formato1.png", label: "Formato 1" },
@@ -456,7 +441,7 @@ const FormCuponPage: React.FC = () => {
       {loading ? (
         <div className="flex flex-col justify-center items-center py-12 text-gray-600 gap-3">
           <ProgressSpinner style={{ width: '40px', height: '40px' }} strokeWidth="4" />
-          <span className="text-sm font-medium">Cargando el cupón...</span>
+          <span className="text-lg font-medium">Cargando ...</span>
         </div>
       ) : (
         <>
@@ -465,14 +450,14 @@ const FormCuponPage: React.FC = () => {
               <Button icon="pi pi-arrow-left" onClick={() => navigate("/")} />
               <div className="md:col-span-2 flex justify-end mt-6 space-x-4">
                 <Button
-                  label={editingId ? "Enviar a producción" : "Enviar para pruebas"}
+                  label={submitLabel}
                   onClick={handleSubmit}
                   raised
                   loading={loading}
-                  icon={editingId ? "pi pi-save" : "pi pi-check"}
-                  className="p-button-success p-4 bg-green-500 hover:bg-green-600 text-white"
-
+                  icon={submitIcon}
+                  className={`p-4 text-white ${submitClass}`}
                 />
+
                 <Button
                   label="Cancelar"
                   type="button"
@@ -507,7 +492,7 @@ const FormCuponPage: React.FC = () => {
                         inputId="pruebas"
                         name="tipoAmbiente"
                         value="Pruebas"
-                        onChange={(e) => handleInputChange("tipoAmbiente", e.value)}
+                        onChange={(e) => AmbienteChange(e.value)}
                         checked={formulario.tipoAmbiente === "Pruebas"}
                       />
                       <label htmlFor="pruebas">Pruebas</label>
@@ -520,7 +505,7 @@ const FormCuponPage: React.FC = () => {
                         inputId="pruebas"
                         name="tipoAmbiente"
                         value="Pruebas"
-                        onChange={(e) => handleInputChange("tipoAmbiente", e.value)}
+                        onChange={(e) => AmbienteChange(e.value)}
                         checked={formulario.tipoAmbiente === "Pruebas"}
                       />
                       <label htmlFor="pruebas">Pruebas</label>
@@ -528,12 +513,27 @@ const FormCuponPage: React.FC = () => {
                         inputId="produccion"
                         name="tipoAmbiente"
                         value="Produccion"
-                        onChange={(e) => handleInputChange("tipoAmbiente", e.value)}
+                        onChange={(e) => AmbienteChange(e.value)}
                         checked={formulario.tipoAmbiente === "Produccion"}
                       />
                       <label htmlFor="produccion">Producción</label>
                     </>
                   )}
+                  <Dialog
+                    header="Confirmacion de cambio de Ambiente"
+                    visible={showConfirm}
+                    style={{ width: "30vw" }}
+                    onHide={cancelarChange}
+                  >
+                    <p className="m-0  font-semibold">
+                      Advertencia: Está a punto de cambiar el ambiente a <b>Producción</b>.
+                      ¿Está seguro que desea continuar?
+                    </p>
+                    <div className="flex justify-end gap-2 mt-4">
+                      <Button label="Confirmar" icon="pi pi-check" onClick={confirmacionChange} className="p-button-text p-4 bg-green-500 xbg-red-500 text-white" raised />
+                      <Button label="Cancelar" icon="pi pi-times" onClick={cancelarChange} className="p-button-text p-4 bg-red-500  text-white" raised />
+                    </div>
+                  </Dialog>
                 </div>
               </div>
 
@@ -564,7 +564,7 @@ const FormCuponPage: React.FC = () => {
 
                   minDate={new Date(new Date().setDate(new Date().getDate() + 1))}
                   onChange={(e) => handleInputChange("fechaInicio", e.value as Date)}
-                  
+
                   showIcon
                   hideOnDateTimeSelect
                 />
@@ -587,7 +587,7 @@ const FormCuponPage: React.FC = () => {
                       : new Date()
                   }
                   onChange={(e) => handleInputChange("fechaFin", e.value as Date)}
-                  
+
                   showIcon
                   hideOnDateTimeSelect
                 />
@@ -638,7 +638,7 @@ const FormCuponPage: React.FC = () => {
                   inputId="criterio1"
                   name="esRecurrente"
                   value={true}
-                  onChange={(e) => handleInputChange("esRecurrente", true)}
+                  onChange={() => handleInputChange("esRecurrente", true)}
                   checked={formulario.esRecurrente === true}
                   disabled={esGeneral}
                 />
@@ -648,7 +648,7 @@ const FormCuponPage: React.FC = () => {
                   inputId="criterio2"
                   name="esRecurrente"
                   value={false}
-                  onChange={(e) => handleInputChange("esRecurrente", false)}
+                  onChange={() => handleInputChange("esRecurrente", false)}
                   checked={formulario.esRecurrente === false}
                   disabled={esGeneral}
                 />
@@ -830,14 +830,12 @@ const FormCuponPage: React.FC = () => {
 
             {/* Carga de Logo */}
             <div className="mt-6">
-              <label className="font-semibold block mb-2">Cargar Logo (.bmp, máx 600px ancho)</label>
-              <FileUpload
-                name="logo"
-                accept=".bmp"
-                maxFileSize={5 * 1024 * 1024}
-                customUpload
-                uploadHandler={handleUploadLogo}
-                emptyTemplate={<p className="m-0">Arrastre el archivo aquí o haga clic para cargar.</p>}
+              <Upload
+                value={formulario.logo as any}             // puede ser File o string (URL/base64)
+                onChange={(f) => handleInputChange("logo", f as any)}
+                toastRef={toast}
+                maxWidth={600}
+                maxSizeMB={5}
               />
             </div>
 
@@ -856,7 +854,11 @@ const FormCuponPage: React.FC = () => {
             </div>
           </section>
 
-
+          <ScrollTop
+            threshold={200}
+            className="w-3rem h-3rem border-round bg-green-600 hover:bg-green-700 shadow-lg"
+            icon="pi pi-arrow-up text-white text-lg"
+          />
         </>
       )}
     </div>
