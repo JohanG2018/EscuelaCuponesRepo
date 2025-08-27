@@ -1,40 +1,11 @@
-import type { Cupon, Local, Producto, Proveedor, Categoria, TipoCombinacion } from "../interface/cuponInterface";
+import type { Cupon } from "../interface/cuponInterface";
+import type { Local } from "../interface/Local";
+import type { Categoria, Producto, Subcategoria } from "../interface/Producto";
+import type { Proveedor } from "../interface/Proveedor";
+import { fileToBase64, origenToTipo, toBool01, toDate } from "../utils/Helper";
 
-export const API_BASE = "http://localhost:8080/wordpress/wp-json/delportal/v1";
+export const API_BASE = import.meta.env.VITE_API_BASE;
 const cache = new Map<string, Producto[]>();
-
-async function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => {
-      const s = (r.result as string) || "";
-      resolve(s.indexOf(",") >= 0 ? s.substring(s.indexOf(",") + 1) : s);
-    };
-    r.onerror = reject;
-    r.readAsDataURL(file);
-  });
-}
-function toDate(value: any): string {
-  if (!value) return "";
-  return new Date(value).toISOString();
-}
-function origenToTipo(origen: TipoCombinacion) {
-  const s = String(origen ?? "").trim().toUpperCase();
-  // si el backend ya manda G/SG/P/I, esto lo deja igual
-  if (s === "G" || s === "SG" || s === "P" || s === "I" || s === "M") return s as any;
-
-  // por si llega texto descriptivo
-  if (s.includes("CATEGORIA")) return "G";
-  if (s.includes("SUB")) return "SG";
-  if (s.includes("PROV")) return "P";
-  if (s.includes("PROD") || s.includes("ITEM")) return "I";
-  return "M"; // mixto / fallback
-}
-
-function toBool01(v: any): boolean {
-  const s = String(v ?? "").trim().toLowerCase();
-  return v === true || v === 1 || s === "1" || s === "true" || s === "sí" || s === "si";
-}
 
 function mapCupon(raw: any): Cupon {
   const cab = raw.cabecera ?? {};
@@ -48,7 +19,8 @@ function mapCupon(raw: any): Cupon {
     cantidad: Number(item.cantidad ?? 0),
     valor: Number(item.valor ?? 0),
     excluida: toBool01(item.esExcluido),                 // "1"/"0" → boolean
-    combinada: toBool01(item.esCombinado),               // "1"/"0" → boolean
+    combinada: toBool01(item.esCombinado),    // "1"/"0" → boolean
+    esConsumidorFinal: toBool01(cab.esConsumidorFinal),
   }));
 
   return {
@@ -67,13 +39,12 @@ function mapCupon(raw: any): Cupon {
     logo: cab.logo ?? "",
     nombreLogo: cab.nombreLogo ?? "",
     tipoAmbiente: cab.ambiente ?? "",
-    esConsumidorFinal: cab.esConsumidorFinal ?? "No",
+    esConsumidorFinal: toBool01(cab.esConsumidorFinal),
     aplicaLocales: cab.aplicaLocales ?? "No",
     combinarCondiciones: cab.combinarCondiciones ?? "No",
     cantidadProductos: cab.cantidadProductos ?? 0,
     formatoLogo: cab.formatoLogo ?? "",
     legal: cab.legal ?? "",
-    factura: toBool01(cab.factura ?? false),
     datosCliente: cab.incluirDatosCliente,
 
     // listas (si en el futuro el backend las envía)
@@ -84,7 +55,7 @@ function mapCupon(raw: any): Cupon {
     productosExcluidos: raw.productosExcluidos ?? [],
     proveedores: raw.proveedores ?? [],
 
-    // 🔴 ahora sí normalizada
+    //ahora sí normalizada
     combinaciones,
   };
 }
@@ -128,12 +99,12 @@ export async function buildCuponXML(formulario: Cupon): Promise<string> {
     <estado>${formulario.estado ? 1 : 0}</estado>
     <tipoAplicacion>${esc(formulario.tipoAplicacion)}</tipoAplicacion>
     <montoMinimo>${Number(formulario.valorMinimo || 0)}</montoMinimo>
-    <esRecurrente>${formulario.criterio ? 1 : 0}</esRecurrente>
+    <esRecurrente>${formulario.esRecurrente ? 1 : 0}</esRecurrente>
     <idTipoFormato>${esc(formulario.idTipoFormato)}</idTipoFormato>
     <logo>${esc(logoStr)}</logo>
     <nombreLogo>${esc(formulario.nombreLogo)}</nombreLogo>
     <ambiente>${esc(formulario.tipoAmbiente)}</ambiente>
-    <esConsumidorFinal>${formulario.esConsumidorFinal ? 1 : 0}</esConsumidorFinal>
+    <esConsumidorFinal>${formulario.esConsumidorFinal === true ? 1 : 0}</esConsumidorFinal>
     <aplicaLocales>${(formulario.locales?.length || 0) > 0 ? 1 : 0}</aplicaLocales>
     <combinarCondiciones>${formulario.combinarCondiciones ? 1 : 0}</combinarCondiciones>
     <cantidadProductos>${Number(formulario.cantidadProductos || combos.length || 0)}</cantidadProductos>
@@ -243,10 +214,7 @@ export async function fetchLocales(like?: string): Promise<Local[]> {
   return normalizeLocalesFromCupon(raw);
 }
 
-
-
-
-export async function searchProductos(q = "", limit = 20): Promise<Producto[]> {
+export async function searchProductos(q = "", limit = 20, signal?: AbortSignal): Promise<Producto[]> {
   const key = `${q}|${limit}`;
   if (cache.has(key)) return cache.get(key)!;
 
@@ -254,7 +222,7 @@ export async function searchProductos(q = "", limit = 20): Promise<Producto[]> {
   if (q) url.searchParams.set("q", q);
   if (limit) url.searchParams.set("limit", String(limit));
 
-  const res = await fetch(url.toString(), { method: "GET" });
+  const res = await fetch(url.toString(), { method: "GET",signal });
   if (!res.ok) throw new Error(`Error buscando productos: ${res.status} ${res.statusText}`);
 
   const json = await res.json().catch(() => null);
@@ -311,7 +279,7 @@ export async function fetchCategorias(like?: string): Promise<Categoria[]> {
   }));
 }
 
-export async function fetchSubCategorias(like?: string): Promise<Categoria[]> {
+export async function fetchSubCategorias(like?: string): Promise<Subcategoria[]> {
   const url = new URL(`${API_BASE}/listado_subcategorias_marketing`);
   if (like && like.trim()) url.searchParams.set("like", like.trim());
 

@@ -1,27 +1,35 @@
 import { InputText } from "primereact/inputtext";
 import { Password } from "primereact/password";
 import { Button } from "primereact/button";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Toast } from "primereact/toast";
 
 export default function LoginPage() {
+     const toast = useRef<Toast>(null);
     const [usuario, setUsuario] = useState("");
     const [password, setPassword] = useState("");
     const navigate = useNavigate();
 
     const validarLogin = () => {
-        localStorage.setItem("logueado", "true");
-        if (usuario === "1234" && password === "123456") {
-            navigate("/admin/cupon");
-        } else {
-
-        }
-    };
+  if (usuario === "1234" && password === "123456") {
+    localStorage.setItem("logueado", "true");
+    navigate("/admin/cupon");
+  } else {
+    toast.current?.show({
+        severity: "error",
+        summary: "Error de credenciales",
+        detail : "Se ingresaron mal las crendeciales",
+        life: 5000
+    })
+}
+};
 
     return (
         <div
             className="min-h-screen bg-slate-200 flex items-center justify-center"
         >
+            <Toast ref={toast}></Toast>
             {/* Overlay */}
             <div className="" />
             {/* Formulario centrado */}
@@ -29,7 +37,7 @@ export default function LoginPage() {
                 {/* Header verde con logo */}
                 <div className="bg-green-800 text-white p-6 text-center rounded-t">
                     <img
-                        src="public\delportal-logo.png"
+                        src="/delportal-logo.png"
                         alt="Logo Delportal"
                         className="mx-auto h-24 mb-2"
                     />

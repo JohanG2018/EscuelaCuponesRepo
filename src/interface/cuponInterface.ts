@@ -1,37 +1,9 @@
+import type { Local } from "./Local";
+import type { Categoria, Producto, Subcategoria } from "./Producto";
+import type { Proveedor } from "./Proveedor";
+
 export type TipoCombinacion = "G" | "SG" | "P" | "I" | "M";
 
-export interface Local {
-  id?: string | number;
-  local?: string;
-  establecimiento?: string;
-  almacen?: string;
-  nombre?: string;
-  activo?: string | boolean
-}
-
-export interface Producto {
-  itemid: string;
-  nombre: string;
-  categoria?: string;
-  subcategoria?: string;
-  proveedor?: string;
-}
-
-export interface Proveedor {
-  id: string;
-  name: string;
-  grupo?: string;
-  alias?: string;
-}
-
-export interface Categoria {
-  id: string;
-  name: string;
-}
-export interface Subcategoria {
-  id: string;
-  name: string;
-}
 export interface Combinacion {
   itemId?: any;
   excluida?: boolean | string;
@@ -42,8 +14,6 @@ export interface Combinacion {
   cantidad: number;
   combinada?:boolean | string;
 }
-
-
 export interface Cupon {
   id: number | string;
   titulo: string;
@@ -52,24 +22,23 @@ export interface Cupon {
   textoLegal: string;
   fechaInicio: Date | string;
   fechaFin: Date | string;
-  estado: boolean | number | string;
+  estado: boolean ;
   tipoAplicacion: string;
-  valorMinimo: number |string;
+  valorMinimo: number ;
   esRecurrente: boolean | string | null;
   idTipoFormato: number | string;
   logo: File | string;
   nombreLogo: string;
   tipoAmbiente: string;
-  esConsumidorFinal: boolean | string;
-  aplicaLocales: boolean | string;
+  esConsumidorFinal: boolean ;
+  aplicaLocales: boolean;
   combinarCondiciones: boolean | string;
-  cantidadProductos: number | string;
-  criterio:boolean | string;
-  
+  cantidadProductos: number ;
+  criterio:boolean ;
   formatoLogo:string
   legal:string
-  factura:boolean
-    datosCliente: false,           
+  
+  datosCliente: false,           
 
   locales: Local[];
   categorias: Categoria[];

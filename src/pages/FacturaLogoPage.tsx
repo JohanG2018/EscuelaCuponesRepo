@@ -6,7 +6,7 @@ import { Card } from "primereact/card";
 import { InputText } from 'primereact/inputtext';
 import { Toast } from "primereact/toast";
 //Interface
-import type { Local } from "../interface/cuponInterface";
+import type { Local } from "../interface/Local";
 //service
 import { fetchLocales } from "../service/cupon";
 import { buildXMLFactura, postFacturasLogo } from "../service/factura_logo";
@@ -61,7 +61,6 @@ export default function FacturaLogoPage() {
 
     try {
       setEnviado(true);
-
       // El back inyectará <logoUrl>, enviamos vacío aquí
       const xml = buildXMLFactura({
         nombreLogo,

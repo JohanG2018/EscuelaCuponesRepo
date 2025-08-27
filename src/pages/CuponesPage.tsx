@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Button } from "primereact/button";
 import { Toast } from "primereact/toast";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import CuponesTable from "../components/CuponesTable";
 import { cambiarEstadoCupon, fetchCupones } from "../service/cupon";
 import type { Cupon } from "../interface/cuponInterface"; 
@@ -11,6 +11,7 @@ const CuponesPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const toast = useRef<Toast>(null);
   const navigate = useNavigate();
+   const location = useLocation();
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -35,6 +36,21 @@ const CuponesPage: React.FC = () => {
     })();
     return () => ctrl.abort();
   }, []);
+  
+   useEffect(() => {
+  const successMsg = location.state?.success;
+  if (!successMsg) return;
+
+  toast.current?.show({
+    severity: "success",
+    summary: "Éxito",
+    detail: successMsg,
+    life: 3000,
+  });
+
+  // Reemplazar con location limpia SIN state
+  navigate(location.pathname, { replace: true, state: {} });
+}, [location]);
 
   const onCrear = () => {
     navigate("/admin/cupon/form");
@@ -60,14 +76,12 @@ const CuponesPage: React.FC = () => {
   const actual = isActivo(cupon.estado);
   const next = !actual;
 
-  // Optimistic UI
   const prev = cupons;
   setCupons((list) =>
     list.map((c) =>
       c.id === cupon.id ? { ...c, estado: next ? 1 : 0 } : c
     )
   );
-
   try {
     await cambiarEstadoCupon(cupon.id, next);
     toast.current?.show({

@@ -68,3 +68,19 @@ button, input:where([type='button']), input:where([type='reset']), input:where([
     /*border-color: #1c63bf;*/
     color: #000000;
 }
+.p-inputtext:enabled:focus {
+    outline: 0 none;
+    outline-offset: 0;
+    box-shadow: 0 0 0 0.1rem #8df1a6;
+    border-color: #8df1a6;
+}
+.p-calendar:not(.p-calendar-disabled).p-focus > .p-inputtext {
+    outline: 0 none;
+    outline-offset: 0;
+    /* box-shadow: 0 0 0 0.2rem #bfdbfe; */
+    /*border-color: #3b82f6;*/
+}
+.p-checkbox.p-highlight .p-checkbox-box {
+    border-color: #3b82f6;
+    background: #4ee213;
+}

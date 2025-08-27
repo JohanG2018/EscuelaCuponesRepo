@@ -27,20 +27,18 @@ import {
   FechaInicio,
   fechaFin
 } from "../utils/Validacion"
-
 import type {
   Cupon,
-  Categoria,
-  Producto,
-  Proveedor,
-  Local,
   Combinacion,
   TipoCombinacion
-
 } from "../interface/cuponInterface";
+import type { Local } from "../interface/Local"
+import type { Categoria, Producto, Subcategoria } from "../interface/Producto"
+import type { Proveedor } from "../interface/Proveedor"
 import { Dialog } from "primereact/dialog";
 import { ScrollTop } from "primereact/scrolltop";
 import Upload from "../components/Upload";
+import { getIdByTipo, getName, keyLocal, mergeCombinaciones, sameLocalesByKey, toArray, validateForm } from "../utils/Helper";
 
 const FormCuponPage: React.FC = () => {
   const navigate = useNavigate();
@@ -49,12 +47,12 @@ const FormCuponPage: React.FC = () => {
   const editingId = id && /^\d+$/.test(id) ? Number(id) : null;
   const toast = useRef<Toast>(null);
 
-
+  //use state
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadingEdicion, setLoadingEdicion] = useState<boolean>(false);
   const [combinaciones, setCombinaciones] = useState<Combinacion[]>([]);
   const [filteredProductos, setFilteredProductos] = useState<Producto[]>([]);
   const [filteredProveedores, setFilteredProveedores] = useState<Proveedor[]>([]);
-  const [, setSubcategoriaOpts] = useState<Categoria[]>([]);
   const [filteredProductosExcluidos, setFilteredProductosExcluidos] = useState<Producto[]>([]);
   const [formulario, setFormulario] = useState<Cupon>({
     id: editingId || 0,
@@ -72,7 +70,7 @@ const FormCuponPage: React.FC = () => {
     logo: "",
     nombreLogo: "formato1",
     tipoAmbiente: "Pruebas",
-    esConsumidorFinal: true,
+    esConsumidorFinal: false,
     aplicaLocales: false,
     combinarCondiciones: false,
     cantidadProductos: 0,
@@ -86,43 +84,50 @@ const FormCuponPage: React.FC = () => {
     criterio: false,
     formatoLogo: "formato1",
     legal: "",
-    factura: false,
     datosCliente: false,
-
   });
 
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [subcategorias, setSubcategorias] = useState<Categoria[]>([]);
+  const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [locales, setLocales] = useState<Local[]>([]);
-
-  const esGeneral = formulario.tipoAplicacion === "General";
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendigValue, setPendingValue] = useState<string | null>(null);
+  const [saving, setSaving] = useState<boolean>(false)
+
+  const esGeneral = formulario.tipoAplicacion === "General";
   const isProduccion = formulario.tipoAmbiente === "Produccion";
   const submitLabel = isProduccion ? "Enviar a producción" : "Enviar a pruebas";
   const submitIcon = isProduccion ? "pi pi-cloud-upload" : "pi pi-send";
   const submitClass = isProduccion ? "bg-green-500 hover:bg-green-600" : "bg-green-500 hover:bg-green-600";
 
-
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
+
+        const getOrFetch = async <T = any>(key: string, fetchFn: () => Promise<T>) => {
+          const cache = localStorage.getItem(key);
+          if (cache) return JSON.parse(cache);
+          const data = await fetchFn();
+          localStorage.setItem(key, JSON.stringify(data));
+          return data;
+        };
+
         const [cats, subs, provs, locs, prods] = await Promise.all([
-          fetchCategorias(),
-          fetchSubCategorias(),
-          fetchProveedores(),
-          fetchLocales(),
-          searchProductos("no hay resultados", 100),
+          getOrFetch("categorias", fetchCategorias),
+          getOrFetch("subcategorias", fetchSubCategorias),
+          getOrFetch("proveedores", fetchProveedores),
+          getOrFetch("locales", fetchLocales),
+          getOrFetch("productos", () => searchProductos("no hay resultados", 100)),
         ]);
+
         setCategorias(cats);
         setSubcategorias(subs);
         setProveedores(provs);
         setLocales(locs);
         setProductos(prods);
-        setSubcategoriaOpts(subs);
       } catch (err) {
         toast.current?.show({
           severity: "error",
@@ -135,6 +140,7 @@ const FormCuponPage: React.FC = () => {
       }
     })();
   }, []);
+
   useEffect(() => {
     if (!id) return;
 
@@ -142,7 +148,7 @@ const FormCuponPage: React.FC = () => {
 
     const cargarCupon = async () => {
       try {
-        setLoading(true);
+        setLoadingEdicion(true);
         const cupon = await fetchCuponById(Number(id));
 
         if (!cupon) throw new Error("Cupón no encontrado");
@@ -152,7 +158,7 @@ const FormCuponPage: React.FC = () => {
         setFormulario((prev) => ({
           ...prev,
           ...data,
-
+           logo: data.logo.includes("base64") ? data.logo : `data:image/png;base64,${data.logo}`,
           id: Number(id),
         }));
 
@@ -162,34 +168,17 @@ const FormCuponPage: React.FC = () => {
       } catch (err) {
         console.error("Error cargando cupón:", err);
       } finally {
-        setLoading(false);
+        setLoadingEdicion(false);
       }
     };
-
     cargarCupon();
-
     return () => ctrl.abort();
   }, [id]);
-  // Helpers recomendados (fuera del componente o memoizados)
-  const keyLocal = (l: any) => String(l?.id ?? `${l?.codigo}-${l?.nombre}`);
-
-  // Compara arrays por clave estable (sin importar la referencia del objeto)
-  const sameLocalesByKey = (a: any[] = [], b: any[] = []) => {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (keyLocal(a[i]) !== keyLocal(b[i])) return false;
-    }
-    return true;
-  };
 
   useEffect(() => {
     // Ejecuta solo cuando ambos están cargados
     if (!locales.length || !formulario.locales?.length) return;
-
-    // Índice del catálogo por clave
     const catalogByKey = new Map(locales.map(o => [keyLocal(o), o]));
-
-    // 1) Deduplica por clave
     const seen = new Set<string>();
     const deduped = [];
     for (const sel of formulario.locales) {
@@ -199,15 +188,14 @@ const FormCuponPage: React.FC = () => {
         deduped.push(sel);
       }
     }
-
     // 2) Reconciliar: reemplazar por el objeto oficial del catálogo si existe
     const reconciled = deduped.map(sel => catalogByKey.get(keyLocal(sel)) ?? sel);
-
     // 3) Evitar setState si no cambia nada (compara por claves)
     if (!sameLocalesByKey(formulario.locales, reconciled)) {
       setFormulario(prev => ({ ...prev, locales: reconciled }));
     }
   }, [locales, formulario.locales]);
+
   const AmbienteChange = (value: string) => {
     if (value === "Produccion") {
       setPendingValue(value)
@@ -258,42 +246,6 @@ const FormCuponPage: React.FC = () => {
     setFormulario((prev) => ({ ...prev, [field]: value }));
   };
 
-  // DEDUP por (tipo + itemId)
-  const mergeCombinaciones = (base: Combinacion[], nuevas: Combinacion[]): Combinacion[] => {
-    const map = new Map(base.map((r) => [`${r.tipo}:${r.itemId}`, r]));
-    for (const item of nuevas) {
-      const k = `${item.tipo}:${item.itemId}`;
-      if (!map.has(k)) map.set(k, item);
-    }
-    return Array.from(map.values());
-  };
-
-  // Helpers
-  const toArray = (v: any) => (Array.isArray(v) ? v : v ? [v] : []);
-
-  const getName = (it: any) =>
-    (typeof it === "string" ? it : undefined) ??
-    it?.nombre ?? it?.name ?? it?.title ?? it?.label ??
-    it?.local ?? it?.categoria ?? it?.subcategoria ?? it?.proveedor ??
-    String(it);
-
-  // ID real según tipo
-  const getIdByTipo = (it: any, tipo: TipoCombinacion): string => {
-    if (typeof it === "string") return it; // si vienen strings, úsalo como id
-    switch (tipo) {
-      case "I":  // Producto
-        return (it.itemid ?? it.id ?? it.value ?? it.key ?? getName(it))?.toString();
-      case "G":  // Categoría
-        return (it.id ?? it.value ?? it.codigo ?? it.key ?? getName(it))?.toString();
-      case "SG": // Subcategoría
-        return (it.id ?? it.value ?? it.codigo ?? it.key ?? getName(it))?.toString();
-      case "P":  // Proveedor
-        return (it.id ?? it.value ?? it.codigo ?? it.key ?? getName(it))?.toString();
-      default:
-        return (it.id ?? it.value ?? it.key ?? getName(it))?.toString();
-    }
-  };
-
   const buildRows = (
     items: any[],
     tipo: TipoCombinacion,
@@ -322,7 +274,6 @@ const FormCuponPage: React.FC = () => {
       ...buildRows(formulario.productos, "I"),
       ...buildRows(formulario.productosExcluidos, "I", { excluida: true }), // <-- corregido
     ];
-
     const merged = mergeCombinaciones(combinaciones, nuevas);
     setCombinaciones(merged);
     handleInputChange("combinaciones", merged);
@@ -338,34 +289,62 @@ const FormCuponPage: React.FC = () => {
   };
   const buscarProductos = async (e: { query: string }) => {
     const query = e.query.toLowerCase();
-    const resultados = (productos || []).filter((p: any) =>
-      p.nombre?.toLowerCase().includes(query)
+    // Obtener desde localStorage (si está) o usar estado
+    const cache = localStorage.getItem("productos");
+    const productosBase = cache ? JSON.parse(cache) : productos;
+    const resultados = (productosBase || []).filter((p: any) =>
+      p.nombre?.toLowerCase().includes(query) ||
+      p.itemid?.toLowerCase().includes(query)
     );
+    console.log(resultados)
     setFilteredProductos(resultados);
   };
   const buscarProductosExcluidos = async (e: { query: string }) => {
     const query = e.query.toLowerCase();
-    const resultados = (productos || []).filter((p: Producto) =>
-      p.nombre?.toLowerCase().includes(query)
+
+    const cache = localStorage.getItem("productos");
+    const productosBase = cache ? JSON.parse(cache) : productos;
+
+    const resultados = (productosBase || []).filter((p: Producto) =>
+      p.nombre?.toLowerCase().includes(query) ||
+      p.itemid?.toLowerCase().includes(query)
     );
+
     setFilteredProductosExcluidos(resultados);
-  }
+  };
 
   const buscarProveedores = (e: { query: string }) => {
     const query = e.query.toLowerCase();
-    const resultados = (proveedores || []).filter((p: any) =>
+
+    const cache = localStorage.getItem("proveedores");
+    const proveedoresBase = cache ? JSON.parse(cache) : proveedores;
+
+    const resultados = (proveedoresBase || []).filter((p: any) =>
       p.name?.toLowerCase().includes(query)
     );
+
     setFilteredProveedores(resultados);
-  }
+  };
+
   const handleSubmit = async () => {
+    const res = validateForm(formulario);
+    if (res.ok === false) {
+      toast.current?.show({
+        severity: "warn",
+        summary: "Faltan campos por llenar",
+        detail: `Completa: ${res.missing.join(", ")}`,
+        life: 5000
+      })
+      return
+    }
+    setSaving(true)
+
     try {
       const esGeneral = formulario.tipoAplicacion === "General";
 
       const xmlData = await buildCuponXML({
         ...formulario,
         id: editingId || 0,
-
         // Estos se excluyen si es "General"
         combinaciones: esGeneral ? [] : combinaciones,
         categorias: esGeneral ? [] : formulario.categorias,
@@ -399,15 +378,11 @@ const FormCuponPage: React.FC = () => {
           (xmlMsgMatch ? xmlMsgMatch[1].trim() : "No se pudo guardar");
         throw new Error(msg);
       }
-
-      // Éxito
-      toast.current?.show({
-        severity: "success",
-        summary: "Éxito",
-        detail: editingId ? "Cupón actualizado" : "Cupón creado",
-        life: 3000,
-      });
-      navigate("/admin/cupon");
+      navigate("/admin/cupon", {
+        state: {
+          success: editingId ? "Cupón actualizado" : "Cupón creado"
+        }
+      })
     } catch (err: any) {
       toast.current?.show({
         severity: "error",
@@ -415,18 +390,19 @@ const FormCuponPage: React.FC = () => {
         detail: err?.message || "Error al guardar el cupón",
         life: 4000,
       });
+    } finally {
+      setSaving(false)
     }
   };
 
   const modoEditar = !!formulario.id; // o como tú determines si es edición
 
   const formatos = [
-    { id: "formato1", imagen: "/img/formato1.png", label: "Formato 1" },
-    { id: "formato2", imagen: "/img/formato2.png", label: "Formato 2" },
-    { id: "formato3", imagen: "/img/formato3.png", label: "Formato 3" },
-    { id: "sinformato", imagen: "/img/formato4.png", label: "Sin Formato" },
+    { id: "formato1", imagen: "/img/formato1.png", label: "Formato 1", idTipoFormato: 1 },
+    { id: "formato2", imagen: "/img/formato2.png", label: "Formato 2", idTipoFormato: 2 },
+    { id: "formato3", imagen: "/img/formato3.png", label: "Formato 3", idTipoFormato: 3 },
+    { id: "sinformato", imagen: "/img/formato4.png", label: "Sin Formato", idTipoFormato: 4 },
   ];
-
   function onRowDeleteFromSelectors(_row: Combinacion): void {
     throw new Error("Function not implemented.");
   }
@@ -438,49 +414,60 @@ const FormCuponPage: React.FC = () => {
         Administrador de Cupones
       </h1>
 
-      {loading ? (
-        <div className="flex flex-col justify-center items-center py-12 text-gray-600 gap-3">
-          <ProgressSpinner style={{ width: '40px', height: '40px' }} strokeWidth="4" />
-          <span className="text-lg font-medium">Cargando ...</span>
+      {loadingEdicion && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex flex-col justify-center items-center">
+          <ProgressSpinner style={{ width: 'full', height: '50px' }} strokeWidth="10" />
+          <span className="text-lg font-semibold mt-4 text-white">Cargando el cupon...</span>
         </div>
-      ) : (
-        <>
-          <div className="flex flex-col ">
-            <div className="flex justify-between">
-              <Button icon="pi pi-arrow-left" onClick={() => navigate("/")} />
-              <div className="md:col-span-2 flex justify-end mt-6 space-x-4">
-                <Button
-                  label={submitLabel}
-                  onClick={handleSubmit}
-                  raised
-                  loading={loading}
-                  icon={submitIcon}
-                  className={`p-4 text-white ${submitClass}`}
-                />
+      )}
+      {saving && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex flex-col justify-center items-center">
+          <ProgressSpinner style={{ width: '50px', height: '50px' }} strokeWidth="10"/>
+          <span className="text-lg font-semibold mt-4 text-white">Guardando...</span>
+        </div>
 
-                <Button
-                  label="Cancelar"
-                  type="button"
-                  onClick={() => navigate("/admin/cupon")}
-                  raised
-                  icon="pi pi-times"
-                  className="p-button-warning p-4 bg-red-500 hover:bg-red-600 text-white"
+      )}
+      <>
+        <div className="flex flex-col ">
+          <div className="flex justify-between">
+            <Button icon="pi pi-arrow-left" onClick={() => navigate("/")} />
+            <div className="md:col-span-2 flex justify-end mt-6 space-x-4">
+              <Button
+                label={submitLabel}
+                onClick={handleSubmit}
+                raised
 
-                />
-              </div>
+                icon={submitIcon}
+                className={`p-4 text-white ${submitClass}`}
+              />
 
+              <Button
+                label="Cancelar"
+                type="button"
+                onClick={() => navigate("/admin/cupon")}
+                raised
+                icon="pi pi-times"
+                className="p-button-warning p-4 bg-red-500 hover:bg-red-600 text-white"
+              />
             </div>
-
           </div>
-
-          {/* A partir de aquí inicia el render visual (secciones del formulario) */}
+        </div>
+        {/* A partir de aquí inicia el render visual (secciones del formulario) */}
+        <div className={loadingEdicion ? "opacity-50 pointer-events-none" : ""}>
           <section className="p-5">
             <h2 className="text-xl font-semibold border-b pb-1 mb-4">Información General</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex flex-col gap-2">
                 <label htmlFor="titulo" className="text-lg font-semibold">Título <span className="text-sm">(Maximo 50 caracteres)</span></label>
-                <InputText id="titulo" value={formulario.titulo} onChange={(e) => handleInputChange("titulo", e.target.value)} maxLength={50} />
-
+                <InputText id="titulo"
+                  value={formulario.titulo}
+                  onChange={(e) => handleInputChange("titulo", e.target.value)}
+                  maxLength={50}
+                  className={formulario.titulo.trim() === "" ? "p-invalid" : ""}
+                />
+                {formulario.titulo.trim() === "" && (
+                  <small className="p-error">El título es obligatorio.</small>
+                )}
               </div>
 
               <div className="flex flex-col gap-2">
@@ -536,17 +523,28 @@ const FormCuponPage: React.FC = () => {
                   </Dialog>
                 </div>
               </div>
-
-
               <div className="md:col-span-2 flex flex-col gap-2">
                 <label htmlFor="descripcion" className="text-lg font-semibold">Descripción <span className="text-sm">(Maximo 200 caracteres)</span></label>
-                <InputTextarea id="descripcion" value={formulario.descripcion} onChange={(e) => handleInputChange("descripcion", e.target.value)} rows={3} autoResize maxLength={200} />
+                <InputTextarea
+
+                  id="descripcion"
+                  value={formulario.descripcion}
+                  onChange={(e) => handleInputChange("descripcion", e.target.value)}
+                  rows={3}
+                  autoResize
+                  maxLength={200}
+                  className={formulario.descripcion.trim() === "" ? "p-invalid" : ""}
+
+                />
+                {formulario.descripcion.trim() === "" && (
+                  <small className="p-error">La descripcion es obligatoria.</small>
+                )}
               </div>
 
               <div className="md:col-span-2">
-                <Checkbox inputId="factura" checked={!!formulario.factura}
-                  onChange={(e) => handleInputChange("factura", !!e.checked)} />
-                <label htmlFor="factura" className="ml-2">Permite Factura</label>
+                <Checkbox inputId="factura" checked={formulario.esConsumidorFinal }
+                  onChange={(e) => handleInputChange("esConsumidorFinal", e.checked!!)} />
+                <label htmlFor="factura" className="ml-2">Consumidor final</label>
               </div>
 
               <div className="flex flex-col gap-2">
@@ -558,16 +556,16 @@ const FormCuponPage: React.FC = () => {
                       ? typeof formulario.fechaInicio === "string"
                         ? new Date(formulario.fechaInicio)
                         : formulario.fechaInicio
-                      : null
-
-                  }
-
+                      : null}
                   minDate={new Date(new Date().setDate(new Date().getDate() + 1))}
                   onChange={(e) => handleInputChange("fechaInicio", e.value as Date)}
-
                   showIcon
                   hideOnDateTimeSelect
+                  className={formulario.fechaInicio === "" ? "p-invalid" : ""}
                 />
+                {formulario.fechaInicio === "" && (
+                  <small className="p-error">La fecha inico es obligatoria.</small>
+                )}
               </div>
 
               <div className="flex flex-col gap-2">
@@ -587,10 +585,14 @@ const FormCuponPage: React.FC = () => {
                       : new Date()
                   }
                   onChange={(e) => handleInputChange("fechaFin", e.value as Date)}
-
                   showIcon
                   hideOnDateTimeSelect
+                  className={formulario.fechaFin === "" ? "p-invalid" : ""}
                 />
+                {formulario.fechaFin === "" && (
+                  <small className="p-error">La fecha fin es obligatoria.</small>
+                )}
+
               </div>
               <div className="md:col-span-2 flex flex-col gap-2">
                 <label htmlFor="locales" className="font-semibold">Locales</label>
@@ -599,9 +601,15 @@ const FormCuponPage: React.FC = () => {
                   optionLabel="local"
                   value={formulario.locales}
                   onChange={(e: any) => handleInputChange("locales", e.value)}
-                  placeholder="Seleccione uno o varios locales"
+                  loading={loading}
+                  placeholder={locales.length === 0 ? "Cargando locales" : "Seleccione uno o varios locales"}
                   name="locales"
+                  className={formulario.locales.toString() === "" ? "p-invalid" : ""}
+                  disabled={locales.length == 0}
                 />
+                {formulario.locales.toString() === "" && (
+                  <small className="p-error">Debe ingresar al menos un local.</small>
+                )}
               </div>
             </div>
           </section>
@@ -627,8 +635,8 @@ const FormCuponPage: React.FC = () => {
                   value={formulario.valorMinimo}
                   onValueChange={(e) => handleInputChange("valorMinimo", e.value ?? 0)}
                   mode="currency"
-                  currency="USD" l
-                  ocale="en-US"
+                  currency="USD"
+                  locale="en-US"
                   disabled={esGeneral}
                 />
               </div>
@@ -670,13 +678,12 @@ const FormCuponPage: React.FC = () => {
                   optionLabel="name"
                   value={formulario.categorias}
                   onChange={(e) => handleInputChange("categorias", e.value)}
-                  placeholder="Seleccione categorías"
+                  loading={loading}
+                  placeholder={categorias.length === 0 ? "Cargando las categorias..." : "Seleccione categorías"}
                   filter
-                  disabled={esGeneral}
-
+                  disabled={esGeneral || categorias.length === 0}
                 />
               </div>
-
               {/* Subcategorías */}
               <div className="flex flex-col gap-2">
                 <label htmlFor="subcategorias" className="font-semibold">Subcategorías</label>
@@ -685,12 +692,12 @@ const FormCuponPage: React.FC = () => {
                   optionLabel="name"
                   value={formulario.subcategorias}
                   onChange={(e) => handleInputChange("subcategorias", e.value)}
-                  placeholder="Seleccione subcategorías"
+                  placeholder={categorias.length === 0 ? "Cargando subcategorias..." : "Seleccione subcategorías"}
                   filter
-                  disabled={esGeneral}
+                  disabled={esGeneral || subcategorias.length === 0}
+                  loading={loading}
                 />
               </div>
-
               {/* Proveedores */}
               <div className="flex flex-col gap-2">
                 <label htmlFor="proveedores" className="font-semibold">Proveedores</label>
@@ -701,11 +708,11 @@ const FormCuponPage: React.FC = () => {
                   suggestions={filteredProveedores}
                   completeMethod={buscarProveedores}
                   onChange={(e) => handleInputChange("proveedores", e.value)}
-                  placeholder="Seleccione proveedores"
-                  disabled={esGeneral}
+                  placeholder={proveedores.length === 0 ? "Cargando proovedores..." : "Escriba el proveedores"}
+                  disabled={esGeneral || proveedores.length == 0}
+
                 />
               </div>
-
               {/* Productos */}
               <div className="flex flex-col gap-2">
                 <label htmlFor="productos" className="font-semibold">Productos</label>
@@ -716,13 +723,11 @@ const FormCuponPage: React.FC = () => {
                   suggestions={filteredProductos}
                   completeMethod={buscarProductos}
                   onChange={(e) => handleInputChange("productos", e.value)}
-                  placeholder="Seleccione productos"
-                  disabled={esGeneral}
+                  placeholder={productos.length === 0 ? "Cargando productos..." : "Escriba los productos"}
+                  disabled={esGeneral || productos.length == 0}
                 />
-
               </div>
             </div>
-
             {/* Productos Excluidos */}
             <div className="mt-6 flex flex-col gap-2">
               <label htmlFor="productosExcluidos" className="font-semibold">Productos Excluidos</label>
@@ -733,8 +738,8 @@ const FormCuponPage: React.FC = () => {
                 suggestions={filteredProductosExcluidos}
                 completeMethod={buscarProductosExcluidos}
                 onChange={(e) => handleInputChange("productosExcluidos", e.value)}
-                placeholder="Seleccione productos"
-                disabled={esGeneral}
+                placeholder={productos.length === 0 ? "Cargando productos excluidos" : "Escriba productos excluidos"}
+                disabled={esGeneral || productos.length === 0}
               />
             </div>
 
@@ -778,7 +783,10 @@ const FormCuponPage: React.FC = () => {
                   key={formato.id}
                   className={`border rounded-md p-3 text-center cursor-pointer transition-all duration-200
       ${formulario.nombreLogo === formato.id ? "ring-2 ring-green-600" : "hover:shadow-md"}`}
-                  onClick={() => handleInputChange("nombreLogo", formato.id)}
+                  onClick={() => {
+                    handleInputChange("nombreLogo", formato.id)
+                    handleInputChange("idTipoFormato", formato.idTipoFormato)
+                  }}
                 >
                   <img
                     src={formato.imagen}
@@ -790,7 +798,11 @@ const FormCuponPage: React.FC = () => {
                       inputId={formato.id}
                       name="nombreLogo"
                       value={formato.id}
-                      onChange={(e) => handleInputChange("nombreLogo", e.value)}
+                      onChange={(e) => {
+                        console.log("Seleccionado:", formato.id, formato.idTipoFormato); // <--- AGREGA ESTO
+                        handleInputChange("nombreLogo", e.value)
+                        handleInputChange("idTipoFormato", formato.idTipoFormato)
+                      }}
                       checked={formulario.nombreLogo === formato.id}
                     />
                     <label htmlFor={formato.id} className="ml-2">{formato.label}</label>
@@ -812,8 +824,6 @@ const FormCuponPage: React.FC = () => {
                 </div>
               ))}
             </div>
-
-
             {/* Descripción del Ticket */}
             <div className="md:col-span-2 flex flex-col gap-2 pt-6">
               <label className=" text-lg font-semibold" htmlFor="descripcionTicket">Descripción en el Ticket <span className="text-sm">(Maximo 50 caracteres)</span></label>
@@ -831,7 +841,7 @@ const FormCuponPage: React.FC = () => {
             {/* Carga de Logo */}
             <div className="mt-6">
               <Upload
-                value={formulario.logo as any}             // puede ser File o string (URL/base64)
+                value={formulario.logo as any}
                 onChange={(f) => handleInputChange("logo", f as any)}
                 toastRef={toast}
                 maxWidth={600}
@@ -853,16 +863,14 @@ const FormCuponPage: React.FC = () => {
               />
             </div>
           </section>
-
-          <ScrollTop
-            threshold={200}
-            className="w-3rem h-3rem border-round bg-green-600 hover:bg-green-700 shadow-lg"
-            icon="pi pi-arrow-up text-white text-lg"
-          />
-        </>
-      )}
+        </div>
+        <ScrollTop
+          threshold={200}
+          className="w-3rem h-3rem border-round bg-green-600 hover:bg-green-700 shadow-lg"
+          icon="pi pi-arrow-up text-white text-lg"
+        />
+      </>
     </div>
   );
 };
-
 export default FormCuponPage;

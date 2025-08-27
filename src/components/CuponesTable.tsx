@@ -36,15 +36,22 @@ const parseDate = (v: any): Date | null => {
  * Retorna true si el intervalo [a1,a2] (del cupón) INTERSECA
  * con el intervalo [b1,b2] (filtro del usuario)
  */
-const rangesIntersect = (a1: Date | null, a2: Date | null, b1: Date | null, b2: Date | null) => {
-  if (!b1 && !b2) return true; // sin filtro, siempre pasa
-  if (!a1 && !a2) return false; // cupón sin fechas válidas, no lo consideramos
-  const startA = a1 ?? a2!;
-  const endA = a2 ?? a1!;
-  const startB = b1 ?? b2!;
-  const endB = b2 ?? b1!;
-  return startA <= endB && endA >= startB;
+const rangesIntersect = (
+  a1: Date | null, // fechaInicio del cupón
+  a2: Date | null, // fechaFin del cupón
+  b1: Date | null, // fechaInicio del filtro
+  b2: Date | null  // fechaFin del filtro
+): boolean => {
+  // Si el filtro no tiene rango válido, no aplica el filtro
+  if (!b1 || !b2) return true;
+
+  // Si el cupón no tiene fechas válidas, lo descartamos
+  if (!a1 || !a2) return false;
+
+  // Comparamos si los rangos [a1,a2] y [b1,b2] se solapan
+  return a1 <= b2 && a2 >= b1;
 };
+
 
 const CuponesTable: React.FC<Props> = ({
   cupones,
@@ -85,7 +92,7 @@ const CuponesTable: React.FC<Props> = ({
           className="p-button-sm p-button-text"
           style={{ color: activo ? "green" : "red" }}
           onClick={() => onToggleStatus(row)}
-          tooltip={activo ? "Desactivar" : "Activar" } 
+          tooltip={activo ? "Activo" : "Inactivo" } 
           data-pr-position="bottom"
           aria-label={activo ? "Desactivar cupón" : "Activar cupón"}
         />
@@ -130,8 +137,15 @@ const CuponesTable: React.FC<Props> = ({
       dateFormat="dd/mm/yyyy"
       placeholder="Rango de fechas"
       className="w-full"
-      
+      hideOnRangeSelection 
     />
+     <Button
+    icon="pi pi-times"
+    className="p-button-outlined"
+    severity="secondary"
+    onClick={() => setRangoFechas(null)}
+    tooltip="Limpiar rango"
+  />
   </div>
 
   {/* Filtrar por estado */}
