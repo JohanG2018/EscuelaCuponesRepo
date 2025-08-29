@@ -76,7 +76,7 @@ const CuponesTable: React.FC<Props> = ({
           style={{ color: "yellow" }}
           aria-label="Editar cupón"
           tooltip="Editar"
-          data-pr-position="bottom"
+          data-pr-position="left"
         />
         {/* 
         <Button
@@ -93,13 +93,12 @@ const CuponesTable: React.FC<Props> = ({
           style={{ color: activo ? "green" : "red" }}
           onClick={() => onToggleStatus(row)}
           tooltip={activo ? "Activo" : "Inactivo" } 
-          data-pr-position="bottom"
+          data-pr-position="left"
           aria-label={activo ? "Desactivar cupón" : "Activar cupón"}
         />
       </div>
     );
   };
-
   const renderEstado = (row: Cupon) => (
     <Tag
       value={estadoTexto(row.estado)}
@@ -107,7 +106,6 @@ const CuponesTable: React.FC<Props> = ({
       rounded
     />
   );
-
   const renderFecha = (value: any) => {
     if (!value) return "";
     const d = new Date(value);
@@ -201,13 +199,41 @@ const CuponesTable: React.FC<Props> = ({
     const skeletonRows = Array.from({ length: 5 }, (_, i) => ({ id: i }));
     return (
       <DataTable value={skeletonRows} responsiveLayout="scroll" header={header}>
-        <Column header="#" align={"center"} body={() => <Skeleton width="2rem" height="1.2rem" />} />
-        <Column header="Título" align={"center"} body={() => <Skeleton width="8rem" height="1.2rem" />} />
-        <Column header="Tipo de Aplicación" align={"center"} body={() => <Skeleton width="6rem" height="1.2rem" />} />
-        <Column header="Inicio" align={"center"} body={() => <Skeleton width="6rem" height="1.2rem" />} />
-        <Column header="Fin" align={"center"} body={() => <Skeleton width="6rem" height="1.2rem" />} />
-        <Column header="Estado" align={"center"} body={() => <Skeleton width="4rem" height="1.2rem" />} />
-        <Column header="Acciones" align={"center"} body={() => <Skeleton width="6rem" height="2rem" />} />
+        <Column header="#"
+         align={"center"}
+          body={() =>(<div className="flex justify-center"><Skeleton width="2rem" height="1.2rem" />
+          </div>) } />
+        <Column header="Título" align={"center"} body={() => 
+        (<div className="flex justify-center">
+          <Skeleton width="8rem" height="1.2rem" />
+        </div>)
+        } />
+        <Column header="Tipo de Aplicación" align={"center"} body={() =>
+          <div className="flex justify-center">
+            <Skeleton width="6rem" height="1.2rem" />
+          </div>
+          } />
+        <Column header="Inicio" align={"center"} body={() =>
+          <div className="flex justify-center">
+            <Skeleton width="6rem" height="1.2rem" />
+          </div>
+        }/>
+        <Column header="Fin" align={"center"} body={() => 
+        <div className="flex justify-center">
+          <Skeleton width="6rem" height="1.2rem" />
+        </div>
+        }/>
+        <Column header="Estado" align={"center"} body={() => 
+        <div className="flex justify-center">
+          <Skeleton width="6rem" height="1.2rem" />
+        </div>
+        } />
+        <Column header="Acciones" align={"center"} 
+        body={() => 
+        <div className="flex justify-center">
+          <Skeleton width="6rem" height="1.2rem" />
+        </div>
+        } />
       </DataTable>
     );
   }

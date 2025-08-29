@@ -110,7 +110,7 @@ const upload: React.FC<props> = ({
         accept=".bmp"
         maxFileSize={maxSizeMB * 1024 * 1024}
         customUpload
-        chooseLabel="Cargar archvio"
+        chooseLabel="Cargar archivo"
         uploadLabel="Subir archivo"
         cancelLabel="Cancelar"
         uploadHandler={handleUpload}

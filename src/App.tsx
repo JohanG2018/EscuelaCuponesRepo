@@ -5,6 +5,7 @@ import FormCuponPage from "./pages/FormCuponPage";
 import Layout from './components/Layout';
 import FacturaLogoPage from './pages/FacturaLogoPage';
 import LoginPage from './pages/LoginPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
   const estaLogueado = localStorage.getItem("logueado") === "true";
@@ -29,6 +30,7 @@ function App() {
 
         {/* Ruta pública */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

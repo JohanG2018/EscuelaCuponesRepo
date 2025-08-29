@@ -73,15 +73,18 @@ const CuponesPage: React.FC = () => {
 };
 
  const onToggleEstado = async (cupon: Cupon) => {
+  if(!cupon?.id) return
   const actual = isActivo(cupon.estado);
   const next = !actual;
 
   const prev = cupons;
-  setCupons((list) =>
+  {/* setCupons((list) =>
     list.map((c) =>
       c.id === cupon.id ? { ...c, estado: next ? 1 : 0 } : c
-    )
-  );
+    ));
+    */}
+    const updated = prev.map((c)=> c.id === cupon.id ?{...c, estado:next }:c);
+    setCupons(updated);
   try {
     await cambiarEstadoCupon(cupon.id, next);
     toast.current?.show({
@@ -103,9 +106,8 @@ const CuponesPage: React.FC = () => {
 };
 
   return (
-    <>
-      <Toast ref={toast} />
-      <div>
+      <div className="">
+          <Toast ref={toast} />
         <h1 className="text-center font-semibold text-2xl p-5 bg-[#124f26] text-white">
           Administrador de cupones
         </h1>
@@ -129,7 +131,7 @@ const CuponesPage: React.FC = () => {
           />
         </div>
       </div>
-    </>
+    
   );
 };
 

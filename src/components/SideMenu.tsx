@@ -18,7 +18,8 @@ const caretCls =
 export default function SideMenu({ collapsed, setCollapsed }: Props) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  
+  const isLogoActive = pathname.startsWith("/admin/logo");
+
 
 const handleLogout = () => {
   localStorage.removeItem("logueado"); // Borra estado de sesión
@@ -66,7 +67,6 @@ const handleLogout = () => {
           <i className="pi pi-ticket" />
           <Label>Admin Cupón</Label>
         </NavLink>
-
         {/* Grupo: Admin Logo (desplegable) */}
         <div className="space-y-1">
           <button
@@ -75,16 +75,15 @@ const handleLogout = () => {
             onClick={() =>
               collapsed ? navigate("/admin/logo/factura") : toggle("adminLogo")
             }
-            className={`${baseItem} w-full`}
+            className={`${baseItem} w-full ${isLogoActive ? activeItem : ""}`}
           >
             <i className="pi pi-image" />
             <Label>Admin Logo</Label>
-
             {/* caret solo si no está colapsado */}
             {!collapsed && (
               <i
                 className={caretCls}
-                style={{ transform: open.adminLogo ? "rotate(0deg)" : "rotate(-90deg)" }}
+                style={{ transform: open.adminLogo ? "rotate-0deg" : "-rotate-90deg" }}
               />
             )}
           </button>
@@ -109,16 +108,15 @@ const handleLogout = () => {
           </div>
         </div>
       </nav>
-
-
-      <div className="mt-auto p-3 opacity-70 text-xs">
+      <div className="mt-auto p-3  text-lg">
         <Button
           label={collapsed ? "" : "Cerrar sesión"}
           icon="pi pi-sign-out"
-          className="p-button-text text-red-500 mt-auto w-full justify-start"
+          className="p-button-text text-red-600 mt-auto w-full justify-start"
           onClick={handleLogout}
-        />
-        {!collapsed ? "LIRIS" : null}
+          tooltip="Cerrar Sesion"
+/>
+        {!collapsed ? "" : null}
       </div>
     </div>
   );

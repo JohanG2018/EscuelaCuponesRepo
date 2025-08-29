@@ -25,7 +25,7 @@ const MultiselectComponent: React.FC<MultiselectComponentProps> = ({
   onChange,
   placeholder = "Seleccione...",
   optionLabel = "name",
-  maxSelectedLabels = 3,
+  maxSelectedLabels = 100,
   filter = true,
   inputId,
   className,

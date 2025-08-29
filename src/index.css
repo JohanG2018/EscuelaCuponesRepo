@@ -80,7 +80,18 @@ button, input:where([type='button']), input:where([type='reset']), input:where([
     /* box-shadow: 0 0 0 0.2rem #bfdbfe; */
     /*border-color: #3b82f6;*/
 }
-.p-checkbox.p-highlight .p-checkbox-box {
-    border-color: #3b82f6;
+.p-checkbox.p-highlight .p-checkbox-box  {
+    border-color: #363636;
     background: #4ee213;
+    
+}
+.p-checkbox:enabled:focus{
+   outline: 0 none;
+    outline-offset: 0;
+     box-shadow: 0 0 0 0.2rem #8df1a6; 
+    border-color: #8df1a6;
+}
+
+.p-button:focus  {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #ffff, 0 1px 2px 0 rgb(0, 0, 0); 
 }

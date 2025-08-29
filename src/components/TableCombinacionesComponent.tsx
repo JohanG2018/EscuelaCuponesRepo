@@ -78,6 +78,8 @@ export default function TableCombinacionesComponent({
       currency={currency}
       locale={locale}
       inputClassName="w-36"
+      min={0}
+   
     />
   );
 
@@ -122,8 +124,8 @@ export default function TableCombinacionesComponent({
         rows={5}
         rowsPerPageOptions={[5, 10, 20, 25]}
       >
-        <Column field="nombre" header="Nombre" style={{ width: "28%" }} />
-        <Column header="Tipo" align={"center"} body={tipoBody} style={{ width: "18%" }} />
+        <Column field="nombre" align={"center"} header="Nombre" style={{ width: "28%" }}  />
+        <Column header="Tipo" align={"center"}  body={tipoBody} style={{ width: "18%" }} />
         <Column header="Cantidad" align={"center"} body={cantidadBody} style={{ width: "16%" }} />
         <Column header="Valor" align={"center"} body={valorBody} style={{ width: "16%" }} />
         <Column header="Combinada" align={"center"} body={combinadaBody} style={{ width: "11%" }} />

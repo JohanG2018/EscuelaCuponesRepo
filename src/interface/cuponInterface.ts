@@ -36,7 +36,7 @@ export interface Cupon {
   cantidadProductos: number ;
   criterio:boolean ;
   formatoLogo:string
-  legal:string
+
   
   datosCliente: false,           
 

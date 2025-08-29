@@ -12,6 +12,7 @@ import { Calendar } from "primereact/calendar";
 import { RadioButton } from "primereact/radiobutton";
 import MultiSelect from "../components/MultiselectComponent";
 import TableCombinacionesComponent from "../components/TableCombinacionesComponent";
+import PreviewTicket from "../components/PreviewTicket";
 import {
   buildCuponXML,
   postCuponXML,
@@ -83,7 +84,6 @@ const FormCuponPage: React.FC = () => {
     proveedores: [],
     criterio: false,
     formatoLogo: "formato1",
-    legal: "",
     datosCliente: false,
   });
 
@@ -95,25 +95,25 @@ const FormCuponPage: React.FC = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendigValue, setPendingValue] = useState<string | null>(null);
   const [saving, setSaving] = useState<boolean>(false)
-
+  const [showPreview, setShowPreview] = useState<boolean>(false);
   const esGeneral = formulario.tipoAplicacion === "General";
   const isProduccion = formulario.tipoAmbiente === "Produccion";
   const submitLabel = isProduccion ? "Enviar a producción" : "Enviar a pruebas";
   const submitIcon = isProduccion ? "pi pi-cloud-upload" : "pi pi-send";
   const submitClass = isProduccion ? "bg-green-500 hover:bg-green-600" : "bg-green-500 hover:bg-green-600";
-
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
 
         const getOrFetch = async <T = any>(key: string, fetchFn: () => Promise<T>) => {
-          const cache = localStorage.getItem(key);
+          const cache = sessionStorage.getItem(key);
           if (cache) return JSON.parse(cache);
           const data = await fetchFn();
-          localStorage.setItem(key, JSON.stringify(data));
+          sessionStorage.setItem(key, JSON.stringify(data));
           return data;
         };
+
 
         const [cats, subs, provs, locs, prods] = await Promise.all([
           getOrFetch("categorias", fetchCategorias),
@@ -149,16 +149,20 @@ const FormCuponPage: React.FC = () => {
     const cargarCupon = async () => {
       try {
         setLoadingEdicion(true);
+
         const cupon = await fetchCuponById(Number(id));
 
-        if (!cupon) throw new Error("Cupón no encontrado");
+        if (!cupon || !cupon) {
+          navigate("/no-encontado", { replace: true }); 
+          return;
+        }
 
         const data = cupon?.data || cupon;
 
         setFormulario((prev) => ({
           ...prev,
           ...data,
-           logo: data.logo.includes("base64") ? data.logo : `data:image/png;base64,${data.logo}`,
+          logo: data.logo.includes("base64") ? data.logo : `data:image/png;base64,${data.logo}`,
           id: Number(id),
         }));
 
@@ -320,7 +324,8 @@ const FormCuponPage: React.FC = () => {
     const proveedoresBase = cache ? JSON.parse(cache) : proveedores;
 
     const resultados = (proveedoresBase || []).filter((p: any) =>
-      p.name?.toLowerCase().includes(query)
+      p.name?.toLowerCase().includes(query) ||
+      p.id?.toLowerCase().includes(query)
     );
 
     setFilteredProveedores(resultados);
@@ -422,40 +427,38 @@ const FormCuponPage: React.FC = () => {
       )}
       {saving && (
         <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex flex-col justify-center items-center">
-          <ProgressSpinner style={{ width: '50px', height: '50px' }} strokeWidth="10"/>
+          <ProgressSpinner style={{ width: '50px', height: '50px' }} strokeWidth="10" />
           <span className="text-lg font-semibold mt-4 text-white">Guardando...</span>
         </div>
 
       )}
       <>
         <div className="flex flex-col ">
-          <div className="flex justify-between">
-            <Button icon="pi pi-arrow-left" onClick={() => navigate("/")} />
-            <div className="md:col-span-2 flex justify-end mt-6 space-x-4">
-              <Button
-                label={submitLabel}
-                onClick={handleSubmit}
-                raised
+          <Button icon="pi pi-arrow-left" onClick={() => navigate("/")} />
 
-                icon={submitIcon}
-                className={`p-4 text-white ${submitClass}`}
-              />
-
-              <Button
-                label="Cancelar"
-                type="button"
-                onClick={() => navigate("/admin/cupon")}
-                raised
-                icon="pi pi-times"
-                className="p-button-warning p-4 bg-red-500 hover:bg-red-600 text-white"
-              />
-            </div>
+          <div className="flex justify-center md:justify-end  mt-6 space-x-4">
+            <Button
+              label={submitLabel}
+              onClick={handleSubmit}
+              raised
+              icon={submitIcon}
+              className={`p-4 text-white ${submitClass}`}
+            />
+            <Button
+              label="Cancelar"
+              type="button"
+              onClick={() => navigate("/admin/cupon")}
+              raised
+              icon="pi pi-times"
+              className="p-button-warning p-4 bg-red-500 hover:bg-red-600 text-white"
+            />
           </div>
+
         </div>
         {/* A partir de aquí inicia el render visual (secciones del formulario) */}
         <div className={loadingEdicion ? "opacity-50 pointer-events-none" : ""}>
           <section className="p-5">
-            <h2 className="text-xl font-semibold border-b pb-1 mb-4">Información General</h2>
+            <h2 className="text-xl font-semibold border-b-4 pb-2 mb-4">Información General</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex flex-col gap-2">
                 <label htmlFor="titulo" className="text-lg font-semibold">Título <span className="text-sm">(Maximo 50 caracteres)</span></label>
@@ -469,7 +472,6 @@ const FormCuponPage: React.FC = () => {
                   <small className="p-error">El título es obligatorio.</small>
                 )}
               </div>
-
               <div className="flex flex-col gap-2">
                 <label className="font-semibold">Ambiente</label>
                 <div className="flex gap-4">
@@ -542,7 +544,7 @@ const FormCuponPage: React.FC = () => {
               </div>
 
               <div className="md:col-span-2">
-                <Checkbox inputId="factura" checked={formulario.esConsumidorFinal }
+                <Checkbox inputId="factura" checked={formulario.esConsumidorFinal}
                   onChange={(e) => handleInputChange("esConsumidorFinal", e.checked!!)} />
                 <label htmlFor="factura" className="ml-2">Consumidor final</label>
               </div>
@@ -615,7 +617,7 @@ const FormCuponPage: React.FC = () => {
           </section>
 
           <section className="p-5">
-            <h2 className="text-xl font-semibold border-b pb-1 mb-4">Condiciones de Aplicación</h2>
+            <h2 className="text-xl font-semibold border-b-4 pb-2 mb-4">Condiciones de Aplicación</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex flex-col gap-2">
                 <label className="font-semibold">Tipo de Aplicación</label>
@@ -628,7 +630,7 @@ const FormCuponPage: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="valorMinimo" className="font-semibold">Valor de compra</label>
+                <label htmlFor="valorMinimo" className="font-semibold">Valor minimo de compra</label>
                 <InputNumber
                   id="valorMinimo"
                   min={0}
@@ -641,34 +643,22 @@ const FormCuponPage: React.FC = () => {
                 />
               </div>
 
-              <div className="flex gap-4">
-                <RadioButton
-                  inputId="criterio1"
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  inputId="checkRecurrente"
                   name="esRecurrente"
-                  value={true}
-                  onChange={() => handleInputChange("esRecurrente", true)}
                   checked={formulario.esRecurrente === true}
+                  onChange={(e) => handleInputChange("esRecurrente", e.checked!!)}
                   disabled={esGeneral}
                 />
-                <label htmlFor="criterio1">Recurrente por cada valor</label>
-
-                <RadioButton
-                  inputId="criterio2"
-                  name="esRecurrente"
-                  value={false}
-                  onChange={() => handleInputChange("esRecurrente", false)}
-                  checked={formulario.esRecurrente === false}
-                  disabled={esGeneral}
-                />
-                <label htmlFor="criterio2">Valor mínimo de compra</label>
+                <label htmlFor="checkRecurrente" className="ml-2">Compra recurrente</label>
               </div>
             </div>
 
 
           </section>
           <section className="p-5">
-            <h2 className="text-xl font-semibold border-b pb-1 mb-4">Productos y Categorías</h2>
-
+            <h2 className="text-xl font-semibold border-b-4 pb-2 mb-4">Productos y Categorías</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Categorías */}
               <div className="flex flex-col gap-2">
@@ -776,7 +766,26 @@ const FormCuponPage: React.FC = () => {
             </div>
           </section>
           <section className="p-5">
-            <h2 className="text-xl font-semibold border-b pb-1 mb-4 mt-10">Configuración Visual</h2>
+            <h2 className="text-xl font-semibold border-b-4 pb-1 mb-4 mt-10">Configuración Visual</h2>
+            <div className="flex justify-end pb-3">
+              <Button
+                type="button"
+                label="Previsualizar"
+                icon="pi pi-eye"
+                raised
+                className="bg-green-500 hover:bg-green-600 focus-visible:bg-green-600 p-4 text-white "
+                onClick={() => { setShowPreview(true) }}
+              />
+            </div>
+            <PreviewTicket
+              visible={showPreview}
+              onHide={() => setShowPreview(false)}
+              titulo={formulario.titulo}
+              descripcion={formulario.descripcionTicket}
+              legal={formulario.textoLegal}
+              logoBase64={typeof formulario.logo === "string" ? formulario.logo : undefined}
+              idFormato={formulario.idTipoFormato}
+            />
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {formatos.map((formato) => (
                 <div
