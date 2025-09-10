@@ -8,7 +8,6 @@ import { InputText } from "primereact/inputtext";
 import { Calendar } from "primereact/calendar";
 import { Dropdown } from "primereact/dropdown";
 import type { Cupon } from "../interface/cuponInterface";
-
 interface Props {
   cupones: Cupon[];
   loading: boolean;
@@ -73,7 +72,7 @@ const CuponesTable: React.FC<Props> = ({
           icon="pi pi-pencil"
           className="p-button-sm p-button-text"
           onClick={() => onEdit(row)}
-          style={{ color: "yellow" }}
+          style={{ color: "#FFEC00" }}
           aria-label="Editar cupón"
           tooltip="Editar"
           data-pr-position="left"

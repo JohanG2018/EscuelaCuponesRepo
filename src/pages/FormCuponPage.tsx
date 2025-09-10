@@ -157,12 +157,14 @@ const FormCuponPage: React.FC = () => {
           return;
         }
 
-        const data = cupon?.data || cupon;
+        const data = cupon as Cupon;
 
         setFormulario((prev) => ({
           ...prev,
           ...data,
-          logo: data.logo.includes("base64") ? data.logo : `data:image/png;base64,${data.logo}`,
+          logo: typeof data.logo === "string"
+            ? (data.logo.includes("base64") ? data.logo : `data:image/png;base64,${data.logo}`)
+            : data.logo,
           id: Number(id),
         }));
 
@@ -784,7 +786,7 @@ const FormCuponPage: React.FC = () => {
               descripcion={formulario.descripcionTicket}
               legal={formulario.textoLegal}
               logoBase64={typeof formulario.logo === "string" ? formulario.logo : undefined}
-              idFormato={formulario.idTipoFormato}
+              idFormato={Number(formulario.idTipoFormato)}
             />
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {formatos.map((formato) => (

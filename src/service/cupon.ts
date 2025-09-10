@@ -44,7 +44,6 @@ function mapCupon(raw: any): Cupon {
     combinarCondiciones: cab.combinarCondiciones ?? "No",
     cantidadProductos: cab.cantidadProductos ?? 0,
     formatoLogo: cab.formatoLogo ?? "",
-    legal: cab.legal ?? "",
     datosCliente: cab.incluirDatosCliente,
 
     // listas (si en el futuro el backend las envía)
