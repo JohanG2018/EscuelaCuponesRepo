@@ -1,5 +1,5 @@
 // PreviewCupon.tsx
-import React  from "react";
+import React from "react";
 import { Dialog } from "primereact/dialog";
 
 interface ElementoFormato {
@@ -15,8 +15,8 @@ interface Props {
   titulo: string;
   descripcion: string;
   legal: string;
-  logoBase64?: string ;
-  idFormato: number ;
+  logoBase64?: string;
+  idFormato: number;
   visible: boolean;
   onHide: () => void;
 }
@@ -38,9 +38,7 @@ const FORMATO_LAYOUTS: Record<number, ElementoFormato[]> = {
     { elemento: "LEGALES", posicion: "FULL", ancho: 40, tamanoTexto: "small" },
   ],
   4: [
-    { elemento: "TITULO" },
-    { elemento: "INFORMACION" },
-    { elemento: "LEGALES" },
+    { elemento: "LOGO", posicion: "FULL_GRANDE", ancho: 40, alto: 200 },
   ],
 };
 
@@ -83,7 +81,10 @@ const PreviewTicket: React.FC<Props> = ({ titulo, descripcion, legal, logoBase64
 
         if (item.elemento === "INFORMACION") {
           return (
-            <div key={index} className={`w-full my-1 ${classText} whitespace-pre-wrap`}>
+            <div
+              key={index} className={`w-full my-1 ${classText} break-words overflow-hidden`}
+              style={{ wordBreak: 'break-word' }}
+            >
               {descripcion || "(Sin información)"}
             </div>
           );
@@ -91,7 +92,8 @@ const PreviewTicket: React.FC<Props> = ({ titulo, descripcion, legal, logoBase64
 
         if (item.elemento === "LEGALES") {
           return (
-            <div key={index} className={`w-full mt-2 pt-2 border-t border-dashed ${classText} whitespace-pre-wrap`}>
+            <div key={index} className={`w-full mt-2 pt-2 border-t border-dashed ${classText} break-words overflow-hidden`}
+              style={{ wordBreak: 'break-word' }}>
               {legal || "(Sin legales)"}
             </div>
           );

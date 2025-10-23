@@ -28,11 +28,11 @@ export default function FacturaLogoPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logosGuardados, setLogosGuardados] = useState<LogoFactura[]>([]);
   const [mostrarTodos, setMostrarTodos] = useState(false);
-  const [editOpen, setEditOpen]= useState<boolean>(false);
+  const [editOpen, setEditOpen] = useState<boolean>(false);
   const [editoriginal, setEditOriginal] = useState<LogoFactura | null>(null);
   const [editnombreLogo, setEditLogoNombre] = useState<string>("");
   const [editLocales, setEditLocales] = useState<Local[]>([]);
-  const [editLogoFile, setEditLogoFile] = useState<File |string| null>(null);
+  const [editLogoFile, setEditLogoFile] = useState<File | string | null>(null);
 
   // Normalizador seguro para lo que devuelva fetchLogosFactura
   const toLogoArray = (resp: any): LogoFactura[] => {
@@ -40,7 +40,7 @@ export default function FacturaLogoPage() {
     if (Array.isArray(resp?.data)) return resp.data as LogoFactura[];
     if (Array.isArray(resp?.logos)) return resp.logos as LogoFactura[];
     return []; // fallback
-  };   
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -73,150 +73,157 @@ export default function FacturaLogoPage() {
     return () => controller.abort();
   }, []);
 
-const onGuardar = async () => {
-  if (!nombreLogo || !logoFile || localesSeleccionados.length === 0) {
-    toast.current?.show({
-      severity: "warn",
-      summary: "Faltan datos",
-      detail: "Debes ingresar nombre, logo y al menos un local",
-      life: 3000,
-    });
-    return;
-  }
-
-  try {
-    setEnviado(true);
-
-    const xml = buildXMLFactura({
-      nombreLogo,
-      logoUrl: "", // el back lo inyecta
-      locales: localesSeleccionados,
-    });
-
-    // Validación extra antes de llamar
-    if (!logoFile || !(logoFile instanceof File)) {
-      throw new Error("Archivo de logo inválido o ausente.");
-    }
-
-    const resp = await postFacturasLogo({
-      file: logoFile,
-      xmlString: xml,
-    });
-
-    if ((resp as any)?.status === "success") {
+  const onGuardar = async () => {
+    if (!nombreLogo || !logoFile || localesSeleccionados.length === 0) {
       toast.current?.show({
-        severity: "success",
-        summary: "Guardado",
-        detail: "Logo asignado correctamente",
+        severity: "warn",
+        summary: "Faltan datos",
+        detail: "Debes ingresar nombre, logo y al menos un local",
         life: 3000,
       });
-    } else {
-      toast.current?.show({
-        severity: "info",
-        summary: "Respuesta recibida",
-        detail: (resp as any)?.message || "Solicitud procesada",
-        life: 2500,
+      return;
+    }
+
+    try {
+      setEnviado(true);
+
+      const xml = buildXMLFactura({
+        nombreLogo,
+        logoUrl: "", // el back lo inyecta
+        locales: localesSeleccionados,
       });
-    }
 
-    // Refrescar lista de logos guardados
-    const refresco = await fetchLogosFactura();
-    const nuevos = toLogoArray(refresco);
-    setLogosGuardados(nuevos);
+      // Validación extra antes de llamar
+      if (!logoFile || !(logoFile instanceof File)) {
+        throw new Error("Archivo de logo inválido o ausente.");
+      }
 
-    // Limpiar form
-    setNombreLogo("");
-    setLogoFile(null);
-    setLocalesSeleccionados([]);
-  } catch (err: any) {
-    console.error("[ERROR] onGuardar:", err);
-    toast.current?.show({
-      severity: "error",
-      summary: "Error",
-      detail: err?.message || "No se pudo guardar",
-      life: 4000,
-    });
-  } finally {
-    setEnviado(false);
-  }
-};
+      const resp = await postFacturasLogo({
+        file: logoFile,
+        xmlString: xml,
+      });
 
-const onEditar = (registro: LogoFactura) => {
-  setEditOriginal(registro);
-  setEditLogoNombre(registro.nombreLogo || "");
-  setEditLogoFile(registro.logoUrl || null);
+      if ((resp as any)?.status === "success") {
+        toast.current?.show({
+          severity: "success",
+          summary: "Guardado",
+          detail: "Logo asignado correctamente",
+          life: 3000,
+        });
+      } else {
+        toast.current?.show({
+          severity: "info",
+          summary: "Respuesta recibida",
+          detail: (resp as any)?.message || "Solicitud procesada",
+          life: 2500,
+        });
+      }
 
-  const local = ( registro.locales||[]).map((l:any)=> 
-    locales.find( loc => loc.id === l.id || loc.local === l.local || loc.local === l.nombre) || l
-  ) ||[];
-  setEditLocales(local);
-  setEditOpen(true);
+      // Refrescar lista de logos guardados
+      const refresco = await fetchLogosFactura();
+      const nuevos = toLogoArray(refresco);
+      setLogosGuardados(nuevos);
 
-};
-
-const onCancelarEdicion = ()=>{
-  setEditOpen(false);
-  setEditOriginal(null)
-  setEditLogoNombre("")
-  setEditLogoFile(null)
-
-  setEditLocales([]);
-}
-
-const onActualizar = async()=>{
-  if(!editoriginal) return;
-
-  if(!editoriginal || editLocales.length===0){
-    toast.current?.show({
-      severity:"warn",
-      summary:"Faltan datos",
-      detail: "Debes ingresar nombre y al menos un local",
-      life:4000
-    });
-    return;
-  }
-  try{
-    setEnviado(true);
-    const xmlUpdate = buildXMLFactura({
-      nombreLogo: editnombreLogo,
-      logoUrl: "",
-      locales: editLocales
-    });
-    const resp = await putLogoFacturaUpdate({
-      idLogoFactura: editoriginal.idLogoFactura,
-      nombreLogo: editnombreLogo,
-      logoUrl: typeof editLogoFile === "string" ? editLogoFile : "",
-      locales: editLocales
-    })
-    if((resp as any)?.status === "success"){
+      // Limpiar form
+      setNombreLogo("");
+      setLogoFile(null);
+      setLocalesSeleccionados([]);
+    } catch (err: any) {
+      console.error("[ERROR] onGuardar:", err);
       toast.current?.show({
-        severity:"success",
-        summary:"Actualizado",
-        detail: "Logo actualizado correctamente",
+        severity: "error",
+        summary: "Error",
+        detail: err?.message || "No se pudo guardar",
+        life: 4000,
+      });
+    } finally {
+      setEnviado(false);
+    }
+  };
+
+  const onEditar = (registro: LogoFactura) => {
+    setEditOriginal(registro);
+    setEditLogoNombre(registro.nombreLogo || "");
+    setEditLogoFile(registro.logoUrl || null);
+
+    // Normaliza los locales del registro para que tengan la estructura esperada
+    const localNormalizado = (registro.locales || []).map((l: any) => ({
+      id: `${l.establecimiento}-${l.almacen}`,
+      local: l.nombre || l.local || "—",
+      establecimiento: l.establecimiento || "",
+      almacen: l.almacen || "",
+      nombre: l.nombre || l.local || "",
+    }));
+    setEditLocales(localNormalizado);
+    setEditOpen(true);
+
+  };
+
+  const onCancelarEdicion = () => {
+    setEditOpen(false);
+    setEditOriginal(null)
+    setEditLogoNombre("")
+    setEditLogoFile(null)
+
+    setEditLocales([]);
+  }
+
+  const onActualizar = async () => {
+    if (!editoriginal) return;
+
+    console.log("[DEBUG] Locales a enviar:", editLocales);
+
+    if (editLocales.length === 0) {
+      toast.current?.show({
+        severity: "warn",
+        summary: "Faltan datos",
+        detail: "Debes ingresar nombre y al menos un local",
         life: 4000
-      })
-    }else{
-      toast.current?.show({
-        severity:"info",
-        summary: "Respuesta recibida",
-        detail: (resp as any)?.message || "Solicitud procesada",
-        life: 3000
-      })
+      });
+      return;
     }
-    const refresco = await fetchLogosFactura();
-    setLogosGuardados(toLogoArray(refresco));
-    onCancelarEdicion();
-  }catch(err:any){
-    toast.current?.show({
-      severity:"error",
-      summary:"Error",
-      detail: err?.message || "No se pudo actualizar",
-      life: 4000
-    });
-  } finally{
-    setEnviado(false);
+    try {
+      setEnviado(true);
+      const xmlUpdate = buildXMLFactura({
+        nombreLogo: editnombreLogo,
+        logoUrl: "",
+        locales: editLocales
+      });
+      const resp = await putLogoFacturaUpdate({
+        idLogoFactura: editoriginal.idLogoFactura,
+        nombreLogo: editnombreLogo,
+        logoUrl: typeof editLogoFile === "string" ? editLogoFile : "",
+        locales: editLocales
+      })
+      if ((resp as any)?.status === "success") {
+        toast.current?.show({
+          severity: "success",
+          summary: "Actualizado",
+          detail: "Logo actualizado correctamente",
+          life: 4000
+        })
+      } else {
+        toast.current?.show({
+          severity: "info",
+          summary: "Respuesta recibida",
+          detail: (resp as any)?.message || "Solicitud procesada",
+          life: 3000
+        })
+      }
+      const refresco = await fetchLogosFactura();
+      setLogosGuardados(toLogoArray(refresco));
+      onCancelarEdicion();
+    } catch (err: any) {
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: err?.message || "No se pudo actualizar",
+        life: 4000
+      });
+    } finally {
+      setEnviado(false);
+    }
   }
-}
 
   return (
     <div className="mx-auto space-y-4 p-4">
@@ -240,9 +247,9 @@ const onActualizar = async()=>{
         <Upload
           value={logoFile}
           onChange={(file) => {
-            setLogoFile(file); 
+            setLogoFile(file);
           }
-            }
+          }
           maxWidth={600}
           maxSizeMB={5}
           disabled={loading || enviado}
@@ -278,25 +285,105 @@ const onActualizar = async()=>{
       </div>
 
       {/* Vista previa de registros guardados */}
-     {logosGuardados?.length > 0 ? (
-  <>
-    <h3 className="font-semibold mb-2">Logo(s) asignado(s):</h3>
+      {logosGuardados?.length > 0 ? (
+        <>
+          <h3 className="font-semibold mb-2">Logo(s) asignado(s):</h3>
 
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {logosGuardados
-        .slice(0, mostrarTodos ? logosGuardados.length : 5) // 👈 mostrar 5 o todos
-        .map((registro, i) => (
-          <Card
-            key={i}
-            className="p-4 shadow-md rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900"
-          >
-            <div className="flex flex-col items-center gap-4">
-              {/* Imagen del logo */}
-              <div className="border rounded-md bg-white shadow p-2">
-                {!!registro?.logoUrl ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {logosGuardados
+              .slice(0, mostrarTodos ? logosGuardados.length : 5) // 👈 mostrar 5 o todos
+              .map((registro, i) => (
+                <Card
+                  key={i}
+                  className="p-4 shadow-md rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900"
+                >
+                  <div className="flex flex-col items-center gap-4">
+                    {/* Imagen del logo */}
+                    <div className="border rounded-md bg-white shadow p-2">
+                      {!!registro?.logoUrl ? (
+                        <img
+                          src={registro.logoUrl}
+                          alt={`Logo ${i}`}
+                          className="h-24 w-auto object-contain"
+                        />
+                      ) : (
+                        <div className="h-24 w-40 flex items-center justify-center text-xs text-gray-500">
+                          Sin imagen
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Nombre y Locales */}
+                    <div className="text-center">
+                      <h3 className="text-base font-semibold mb-1">
+                        {registro?.nombreLogo || "—"}
+                      </h3>
+                      <ul className="list-disc list-inside text-sm text-gray-700 dark:text-zinc-200">
+                        {registro?.locales?.map((l, idx) => (
+                          <li key={l?.id ?? `${l?.local}-${idx}`}>{l?.local}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="flex justify-end mt-4 ">
+                    <Button
+                      label="Editar"
+                      type="button"
+                      onClick={() => onEditar(registro)}
+                      raised
+                      icon="pi pi-pencil"
+                      className="p-2 bg-green-500 text-white"
+                    />
+                  </div>
+                </Card>
+              ))}
+          </div>
+
+          {/* Botón Ver más / Ver menos */}
+          {logosGuardados.length > 5 && (
+            <div className="flex justify-center mt-6">
+              <Button
+                label={mostrarTodos ? "Ver menos" : "Ver más"}
+                onClick={() => setMostrarTodos((prev) => !prev)}
+                icon={mostrarTodos ? "pi pi-chevron-up" : "pi pi-chevron-down"}
+                className="px-5 py-2 bg-blue-500 text-white"
+              />
+            </div>
+          )}
+        </>
+      ) : (
+        !loading && (
+          <p className="text-sm text-gray-500 text-center">
+            No hay logos asignados aún.
+          </p>
+        )
+      )}
+      <Dialog
+        header="Editar Logo de Factura"
+        visible={editOpen}
+        style={{ width: "46rem", maxWidth: "95vw" }}
+        modal
+        onHide={() => !enviado && onCancelarEdicion()}>
+        <div className="space-y-4">
+          <div className="flex flex-col">
+            <label className="font-semibold p-2" htmlFor="">Nombre del logo</label>
+            <InputText
+              value={editnombreLogo}
+              onChange={(e) => setEditLogoNombre(e.target.value)}
+              placeholder="Ingrese el nombre del logo"
+              className="w-full"
+              disabled={enviado}
+            />
+          </div>
+          <Divider />
+          <div className="flex flex-col gap-2">
+            <label className="font-semibold">Logo actual</label>
+            {editLogoFile ? (
+              <div className="border rounded-md bg-white shadow p-2 flex justify-center">
+                {typeof editLogoFile === 'string' ? (
                   <img
-                    src={registro.logoUrl}
-                    alt={`Logo ${i}`}
+                    src={editLogoFile}
+                    alt="Logo actual"
                     className="h-24 w-auto object-contain"
                   />
                 ) : (
@@ -305,126 +392,50 @@ const onActualizar = async()=>{
                   </div>
                 )}
               </div>
+            ) : (
+              <p className="text-sm text-gray-500">No hay logo asignado.</p>
+            )}
+            <p className="text-xs text-gray-500 mt-1">
+              El logo no puede modificarse. Si necesita un nuevo logo, cree un nuevo registro.
+            </p>
+          </div>
 
-              {/* Nombre y Locales */}
-              <div className="text-center">
-                <h3 className="text-base font-semibold mb-1">
-                  {registro?.nombreLogo || "—"}
-                </h3>
-                <ul className="list-disc list-inside text-sm text-gray-700 dark:text-zinc-200">
-                  {registro?.locales?.map((l, idx) => (
-                    <li key={l?.id ?? `${l?.local}-${idx}`}>{l?.local}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <div className="flex justify-end mt-4 ">
-              <Button
-                label="Editar"
-                type="button"
-                onClick={() => onEditar(registro)}
-                raised
-                icon="pi pi-pencil"
-                className="p-2 bg-green-500 text-white"
-              />
-            </div>
-          </Card>
-        ))}
+        </div>
+        <Divider />
+        <div>
+          <label className="font-semibold block mb-2" htmlFor="">Locales asignados</label>
+          <MultiSelect
+            value={editLocales}
+            onChange={(e) => setEditLocales(e.value)}
+            options={locales}
+            optionLabel="local"
+            placeholder="Seleccione uno o varios locales"
+            maxSelectedLabels={100}
+            className="w-full md:w-20rem"
+            disabled={enviado}
+          />
+        </div>
+        <div className="flex justify-end gap-3 pt-2">
+          <Button
+            label="Cancelar"
+            icon="pi pi-times"
+            className="bg-red-600 text-white px-5 py-2"
+            onClick={onCancelarEdicion}
+            disabled={enviado}
+            raised
+          />
+          <Button
+            label={enviado ? "Actualizando..." : "Actualizar"}
+            icon="pi pi-save"
+            onClick={onActualizar}
+            className="bg-green-600 text-white px-5 py-2"
+            disabled={enviado}
+            raised
+          />
+        </div>
+
+      </Dialog>
     </div>
 
-    {/* Botón Ver más / Ver menos */}
-    {logosGuardados.length > 5 && (
-      <div className="flex justify-center mt-6">
-        <Button
-          label={mostrarTodos ? "Ver menos" : "Ver más"}
-          onClick={() => setMostrarTodos((prev) => !prev)}
-          icon={mostrarTodos ? "pi pi-chevron-up" : "pi pi-chevron-down"}
-          className="px-5 py-2 bg-blue-500 text-white"
-        />
-      </div>
-    )}
-  </>
-) : (
-  !loading && (
-    <p className="text-sm text-gray-500 text-center">
-      No hay logos asignados aún.
-    </p>
-  )
-)}
-<Dialog
-  header="Editar Logo de Factura"
-  visible={editOpen}
-  style={{width: "46rem",maxWidth:"95vw"}}
-  modal
-  onHide={()=> ! enviado && onCancelarEdicion()}>
-    <div className="space-y-4">
-      <div className="flex flex-col">
-        <label className="font-semibold p-2" htmlFor="">Nombre del logo</label>
-        <InputText
-          value={editnombreLogo}
-          onChange={(e)=> setEditLogoNombre(e.target.value)}
-          placeholder="Ingrese el nombre del logo"
-          className="w-full"
-          disabled={enviado}
-        />
-      </div>
-      <Divider/>
-      <div className=" flex flex-col gap-2">
-        <Upload
-          value={editLogoFile}
-          onChange={(file)=>{
-            setEditLogoFile(file)
-            if(file){
-              const objUrl = URL.createObjectURL(file);
-              setEditLogoFile(objUrl);
-            }else{
-              setEditLogoFile(editoriginal?.logoUrl || null);
-            }
-          }}
-          maxWidth={700}
-          maxSizeMB={5}
-          disabled={enviado}
-          label="Cargar nuevo logo (.bmp, máx 600px ancho)"
-        />
-        
-      </div>
-      
-    </div>      
-      <Divider/>
-      <div>
-        <label className="font-semibold block mb-2" htmlFor="">Locales asignados</label>
-        <MultiSelect 
-        value={editLocales}
-        onChange={(e)=> setEditLocales(e.value)}
-        options={locales}
-        optionLabel="local"
-        placeholder="Seleccione uno o varios locales"
-        maxSelectedLabels={100}
-        className="w-full md:w-20rem"
-        disabled={enviado}
-        />
-      </div>
-       <div className="flex justify-end gap-3 pt-2">
-      <Button
-        label="Cancelar"
-        icon="pi pi-times"
-        className="bg-red-600 text-white px-5 py-2"
-        onClick={onCancelarEdicion}
-        disabled={enviado}
-        raised
-      />
-      <Button
-        label={enviado ? "Actualizando..." : "Actualizar"}
-        icon="pi pi-save"
-        onClick={onActualizar}
-        className="bg-green-600 text-white px-5 py-2"
-        disabled={enviado}
-        raised
-      />
-    </div>
-  
-  </Dialog>
-    </div>
-   
-  );  
+  );
 }

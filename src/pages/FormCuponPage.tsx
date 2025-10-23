@@ -153,7 +153,7 @@ const FormCuponPage: React.FC = () => {
         const cupon = await fetchCuponById(Number(id));
 
         if (!cupon || !cupon) {
-          navigate("/no-encontado", { replace: true }); 
+          navigate("/no-encontado", { replace: true });
           return;
         }
 
@@ -837,7 +837,7 @@ const FormCuponPage: React.FC = () => {
             </div>
             {/* Descripción del Ticket */}
             <div className="md:col-span-2 flex flex-col gap-2 pt-6">
-              <label className=" text-lg font-semibold" htmlFor="descripcionTicket">Descripción en el Ticket <span className="text-sm">(Maximo 50 caracteres)</span></label>
+              <label className=" text-lg font-semibold" htmlFor="descripcionTicket">Información <span className="text-sm">(Máximo 50 caracteres)</span></label>
               <InputTextarea
                 id="descripcionTicket"
                 value={formulario.descripcionTicket}
@@ -862,7 +862,7 @@ const FormCuponPage: React.FC = () => {
 
             {/* Texto Legal */}
             <div className="mt-6 flex flex-col gap-2 md:w-2/3">
-              <label htmlFor="textoLegal" className="text-lg font-semibold">Texto legal del cupón <span className="text-sm">(Maximo 30 caracteres)</span></label>
+              <label htmlFor="textoLegal" className="text-lg font-semibold">Legales <span className="text-sm">(Máximo 30 caracteres)</span></label>
               <InputTextarea
                 id="textoLegal"
                 value={formulario.textoLegal}

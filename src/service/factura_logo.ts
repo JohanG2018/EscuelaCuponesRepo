@@ -27,11 +27,13 @@ function normalizeLocales(raw: any[]): Local[] {
 /** Mapea { cabecera, locales } → LogoFactura plano (sin cambiar tu interfaz) */
 function mapLogo(raw: any): LogoFactura {
   const cab = raw?.cabecera ?? {};
+  const id = String(cab.id ?? cab.idLogoFactura ?? "");
   return {
-    id: String(cab.id ?? ""),
+    id: id,
     nombreLogo: String(cab.nombreLogo ?? ""),
     logoUrl: String(cab.logoUrl ?? ""),
     locales: normalizeLocales(raw?.locales ?? []),
+    idLogoFactura: id,
   };
 }
 
@@ -66,7 +68,7 @@ export async function fetchLogosFactura(): Promise<LogoFactura[]> {
 }
 
 /** GET: un logo por id */
-export async function fetchLogoFacturaById(id: string ): Promise<LogoFactura | null> {
+export async function fetchLogoFacturaById(id: string): Promise<LogoFactura | null> {
   const res = await fetch(`${API_BASE}/get_logo_facturas_db?id=${id}`);
   const text = await res.text();
 
@@ -85,7 +87,7 @@ export async function fetchLogoFacturaById(id: string ): Promise<LogoFactura | n
 
 export function buildXMLFactura(input: {
   nombreLogo: string;
-  logoUrl?: string;           
+  logoUrl?: string;
   locales: Local[];
 }): string {
   return `
@@ -137,7 +139,7 @@ export function buildXMLFacturaUpdate(input: {
 </req>`.trim();
 
   // Tu IntegrationBus suele usar ProgId="CLF" para Logos de Factura (ajústalo si corresponde)
-  return input.wrapWithRoot === false ? req : `<Root ProgId="ULF">${req}</Root>`;
+  return req;
 }
 
 /** Parser tolerante: maneja JSON normalizado o XML del bus (incluido DataSet con XML dentro de <resultado>) */
@@ -255,8 +257,8 @@ export async function postFacturasLogo({
   signal?: AbortSignal;
 }) {
   const fd = new FormData();
-  fd.append("logoFactura", file, file.name); 
-  fd.append("xml_data", xmlString);       
+  fd.append("logoFactura", file, file.name);
+  fd.append("xml_data", xmlString);
 
   // DEBUG ÚTIL (puedes comentar esto en prod)
   console.log("[postFacturasLogo] Enviando XML:");
