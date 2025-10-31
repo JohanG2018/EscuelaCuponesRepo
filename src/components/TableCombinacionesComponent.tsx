@@ -79,14 +79,7 @@ export default function TableCombinacionesComponent({
       locale={locale}
       inputClassName="w-36"
       min={0}
-   
-    />
-  );
 
-  const combinadaBody = (row: Combinacion) => (
-    <Checkbox
-      checked={!!row.combinada}
-      onChange={(e) => updateField(row.key, "combinada", !!e.checked)}
     />
   );
 
@@ -124,11 +117,10 @@ export default function TableCombinacionesComponent({
         rows={5}
         rowsPerPageOptions={[5, 10, 20, 25]}
       >
-        <Column field="nombre" align={"center"} header="Nombre" style={{ width: "28%" }}  />
-        <Column header="Tipo" align={"center"}  body={tipoBody} style={{ width: "18%" }} />
+        <Column field="nombre" align={"center"} header="Nombre" style={{ width: "28%" }} />
+        <Column header="Tipo" align={"center"} body={tipoBody} style={{ width: "18%" }} />
         <Column header="Cantidad" align={"center"} body={cantidadBody} style={{ width: "16%" }} />
         <Column header="Valor" align={"center"} body={valorBody} style={{ width: "16%" }} />
-        <Column header="Combinada" align={"center"} body={combinadaBody} style={{ width: "11%" }} />
         <Column header="Excluida" align={"center"} body={excluidaBody} style={{ width: "11%" }} />
         <Column header="Acciones" align={"center"} body={accionesBody} style={{ width: "10%" }} />
       </DataTable>

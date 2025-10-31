@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { cache, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Toast } from "primereact/toast";
 import { ProgressSpinner } from "primereact/progressspinner";
@@ -40,6 +40,7 @@ import { Dialog } from "primereact/dialog";
 import { ScrollTop } from "primereact/scrolltop";
 import Upload from "../components/Upload";
 import { getIdByTipo, getName, keyLocal, mergeCombinaciones, sameLocalesByKey, toArray, validateForm } from "../utils/Helper";
+import { getCachedData, setCachedData } from "../utils/cache";
 
 const FormCuponPage: React.FC = () => {
   const navigate = useNavigate();
@@ -52,9 +53,11 @@ const FormCuponPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingEdicion, setLoadingEdicion] = useState<boolean>(false);
   const [combinaciones, setCombinaciones] = useState<Combinacion[]>([]);
+  const [combinarCondiciones, setCombinarCondiciones] = useState<boolean>(false);
   const [filteredProductos, setFilteredProductos] = useState<Producto[]>([]);
   const [filteredProveedores, setFilteredProveedores] = useState<Proveedor[]>([]);
   const [filteredProductosExcluidos, setFilteredProductosExcluidos] = useState<Producto[]>([]);
+
   const [formulario, setFormulario] = useState<Cupon>({
     id: editingId || 0,
     titulo: "",
@@ -66,7 +69,7 @@ const FormCuponPage: React.FC = () => {
     estado: true,
     tipoAplicacion: "",
     valorMinimo: 0,
-    esRecurrente: true,
+    esRecurrente: false,
     idTipoFormato: 1,
     logo: "",
     nombreLogo: "formato1",
@@ -87,6 +90,10 @@ const FormCuponPage: React.FC = () => {
     datosCliente: false,
   });
 
+  const [titulo, setTitulo] = useState(formulario.titulo);
+  const [descripcion, setDescripcion] = useState(formulario.descripcion);
+  const [descripcionTicket, setDescripcionTicket] = useState(formulario.descripcionTicket);
+  const [textoLegal, setTextoLegal] = useState(formulario.textoLegal);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
@@ -101,16 +108,25 @@ const FormCuponPage: React.FC = () => {
   const submitLabel = isProduccion ? "Enviar a producción" : "Enviar a pruebas";
   const submitIcon = isProduccion ? "pi pi-cloud-upload" : "pi pi-send";
   const submitClass = isProduccion ? "bg-green-500 hover:bg-green-600" : "bg-green-500 hover:bg-green-600";
+
+  // Sincroniza con el estado principal al cargar (edición)
+  useEffect(() => {
+    if (formulario.titulo) setTitulo(formulario.titulo);
+    if (formulario.descripcion) setDescripcion(formulario.descripcion);
+    if (formulario.descripcionTicket) setDescripcionTicket(formulario.descripcionTicket);
+    if (formulario.textoLegal) setTextoLegal(formulario.textoLegal);
+  }, [formulario.id]); // Solo al cargar/editar
+
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
 
         const getOrFetch = async <T = any>(key: string, fetchFn: () => Promise<T>) => {
-          const cache = sessionStorage.getItem(key);
-          if (cache) return JSON.parse(cache);
+          const cache = getCachedData<T>(key);
+          if (cache) return cache;
           const data = await fetchFn();
-          sessionStorage.setItem(key, JSON.stringify(data));
+          setCachedData(key, data);
           return data;
         };
 
@@ -159,9 +175,29 @@ const FormCuponPage: React.FC = () => {
 
         const data = cupon as Cupon;
 
+        // Normalizar valores booleanos
+        const normalizeBoolean = (value: any): boolean => {
+          if (typeof value === 'boolean') return value;
+          if (typeof value === 'number') return value === 1;
+          if (typeof value === 'string') {
+            const lower = value.trim().toLowerCase();
+            return lower === '1' || lower === 'true' || lower === 'si';
+          }
+          return false;
+        };
+
+        const normalizedData = {
+          ...data,
+          esRecurrente: normalizeBoolean(data.esRecurrente),
+          combinarCondiciones: normalizeBoolean(data.combinarCondiciones),
+          esConsumidorFinal: normalizeBoolean(data.esConsumidorFinal),
+          datosCliente: normalizeBoolean(data.datosCliente),
+          //estado: normalizeBoolean(data.estado),
+        };
+
         setFormulario((prev) => ({
           ...prev,
-          ...data,
+          ...normalizedData,
           logo: typeof data.logo === "string"
             ? (data.logo.includes("base64") ? data.logo : `data:image/png;base64,${data.logo}`)
             : data.logo,
@@ -293,43 +329,29 @@ const FormCuponPage: React.FC = () => {
     handleInputChange("productos", []);
     handleInputChange("productosExcluidos", []);
   };
-  const buscarProductos = async (e: { query: string }) => {
+  const buscarProductos = (e: { query: string }) => {
     const query = e.query.toLowerCase();
-    // Obtener desde localStorage (si está) o usar estado
-    const cache = localStorage.getItem("productos");
-    const productosBase = cache ? JSON.parse(cache) : productos;
-    const resultados = (productosBase || []).filter((p: any) =>
+    const resultados = productos.filter((p) =>
       p.nombre?.toLowerCase().includes(query) ||
       p.itemid?.toLowerCase().includes(query)
     );
-    console.log(resultados)
     setFilteredProductos(resultados);
   };
-  const buscarProductosExcluidos = async (e: { query: string }) => {
+  const buscarProductosExcluidos = (e: { query: string }) => {
     const query = e.query.toLowerCase();
-
-    const cache = localStorage.getItem("productos");
-    const productosBase = cache ? JSON.parse(cache) : productos;
-
-    const resultados = (productosBase || []).filter((p: Producto) =>
+    const resultados = productos.filter((p) =>
       p.nombre?.toLowerCase().includes(query) ||
       p.itemid?.toLowerCase().includes(query)
     );
-
     setFilteredProductosExcluidos(resultados);
   };
 
   const buscarProveedores = (e: { query: string }) => {
     const query = e.query.toLowerCase();
-
-    const cache = localStorage.getItem("proveedores");
-    const proveedoresBase = cache ? JSON.parse(cache) : proveedores;
-
-    const resultados = (proveedoresBase || []).filter((p: any) =>
+    const resultados = proveedores.filter((p) =>
       p.name?.toLowerCase().includes(query) ||
       p.id?.toLowerCase().includes(query)
     );
-
     setFilteredProveedores(resultados);
   };
 
@@ -353,14 +375,14 @@ const FormCuponPage: React.FC = () => {
         ...formulario,
         id: editingId || 0,
         // Estos se excluyen si es "General"
-        combinaciones: esGeneral ? [] : combinaciones,
+        combinaciones: esGeneral ? [] : formulario.combinaciones,
         categorias: esGeneral ? [] : formulario.categorias,
         subcategorias: esGeneral ? [] : formulario.subcategorias,
         proveedores: esGeneral ? [] : formulario.proveedores,
         productos: esGeneral ? [] : formulario.productos,
         productosExcluidos: esGeneral ? [] : formulario.productosExcluidos,
         valorMinimo: esGeneral ? 0 : formulario.valorMinimo,
-        esRecurrente: esGeneral ? null : formulario.esRecurrente,
+        esRecurrente: esGeneral ? false : formulario.esRecurrente,
       });
 
       // Enviar (PUT si edita, POST si crea)
@@ -654,6 +676,17 @@ const FormCuponPage: React.FC = () => {
                   disabled={esGeneral}
                 />
                 <label htmlFor="checkRecurrente" className="ml-2">Compra recurrente</label>
+              </div>
+
+              <div className="flex items-center space-x-4 mb-4">
+                <label className="flex items-center">
+                  <Checkbox
+                    checked={!!formulario.combinarCondiciones}
+                    onChange={(e) => handleInputChange("combinarCondiciones", e.checked!!)}
+                    disabled={esGeneral}
+                  />
+                  <span>Combinar condiciones</span>
+                </label>
               </div>
             </div>
 

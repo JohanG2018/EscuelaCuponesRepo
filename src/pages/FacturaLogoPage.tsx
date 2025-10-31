@@ -171,8 +171,6 @@ export default function FacturaLogoPage() {
   const onActualizar = async () => {
     if (!editoriginal) return;
 
-    console.log("[DEBUG] Locales a enviar:", editLocales);
-
     if (editLocales.length === 0) {
       toast.current?.show({
         severity: "warn",

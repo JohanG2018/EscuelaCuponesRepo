@@ -12,7 +12,7 @@ export interface Combinacion {
   tipo: TipoCombinacion;
   valor: number;
   cantidad: number;
-  combinada?:boolean | string;
+  combinada?: boolean | string;
 }
 export interface Cupon {
   id: number | string;
@@ -22,23 +22,23 @@ export interface Cupon {
   textoLegal: string;
   fechaInicio: Date | string;
   fechaFin: Date | string;
-  estado: boolean ;
+  estado: boolean;
   tipoAplicacion: string;
-  valorMinimo: number ;
-  esRecurrente: boolean | string | null;
+  valorMinimo: number;
+  esRecurrente: boolean;
   idTipoFormato: number | string;
   logo: File | string;
   nombreLogo: string;
   tipoAmbiente: string;
-  esConsumidorFinal: boolean ;
+  esConsumidorFinal: boolean;
   aplicaLocales: boolean;
-  combinarCondiciones: boolean | string;
-  cantidadProductos: number ;
-  criterio:boolean ;
-  formatoLogo:string
+  combinarCondiciones: boolean;
+  cantidadProductos: number;
+  criterio: boolean;
+  formatoLogo: string
 
-  
-  datosCliente: false,           
+
+  datosCliente: boolean,
 
   locales: Local[];
   categorias: Categoria[];

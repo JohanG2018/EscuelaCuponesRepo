@@ -73,7 +73,7 @@ export async function buildCuponXML(formulario: Cupon): Promise<string> {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   };
 
- 
+
   let logoStr = "";
   if (formulario.logo instanceof File) {
     const b64 = await fileToBase64(formulario.logo);
@@ -221,7 +221,7 @@ export async function searchProductos(q = "", limit = 20, signal?: AbortSignal):
   if (q) url.searchParams.set("q", q);
   if (limit) url.searchParams.set("limit", String(limit));
 
-  const res = await fetch(url.toString(), { method: "GET",signal });
+  const res = await fetch(url.toString(), { method: "GET", signal });
   if (!res.ok) throw new Error(`Error buscando productos: ${res.status} ${res.statusText}`);
 
   const json = await res.json().catch(() => null);

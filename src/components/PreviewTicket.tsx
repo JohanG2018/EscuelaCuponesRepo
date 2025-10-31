@@ -49,7 +49,15 @@ const getTextSize = (size?: string) => {
   return "text-sm";
 };
 
-const PreviewTicket: React.FC<Props> = ({ titulo, descripcion, legal, logoBase64, idFormato, visible, onHide }) => {
+const PreviewTicket = React.memo(({
+  titulo,
+  descripcion,
+  legal,
+  logoBase64,
+  idFormato,
+  visible,
+  onHide
+}: Props) => {
   const layout = FORMATO_LAYOUTS[idFormato] || [];
 
   const content = (
@@ -82,7 +90,7 @@ const PreviewTicket: React.FC<Props> = ({ titulo, descripcion, legal, logoBase64
         if (item.elemento === "INFORMACION") {
           return (
             <div
-              key={index} className={`w-full my-1 ${classText} break-words overflow-hidden`}
+              key={index} className={`w-full my-1 ${classText} break-words overflow-hidden text-center`}
               style={{ wordBreak: 'break-word' }}
             >
               {descripcion || "(Sin información)"}
@@ -92,7 +100,7 @@ const PreviewTicket: React.FC<Props> = ({ titulo, descripcion, legal, logoBase64
 
         if (item.elemento === "LEGALES") {
           return (
-            <div key={index} className={`w-full mt-2 pt-2 border-t border-dashed ${classText} break-words overflow-hidden`}
+            <div key={index} className={`w-full mt-2 pt-2 border-t border-dashed ${classText} break-words overflow-hidden text-center`}
               style={{ wordBreak: 'break-word' }}>
               {legal || "(Sin legales)"}
             </div>
@@ -109,6 +117,6 @@ const PreviewTicket: React.FC<Props> = ({ titulo, descripcion, legal, logoBase64
       {content}
     </Dialog>
   );
-};
+});
 
 export default PreviewTicket;
