@@ -114,8 +114,8 @@ export default function TableCombinacionesComponent({
         className="mt-3"
         emptyMessage="No hay combinaciones agregadas."
         paginator
-        rows={5}
-        rowsPerPageOptions={[5, 10, 20, 25]}
+        rows={30}
+        rowsPerPageOptions={[10, 30, 40, 50]}
       >
         <Column field="nombre" align={"center"} header="Nombre" style={{ width: "28%" }} />
         <Column header="Tipo" align={"center"} body={tipoBody} style={{ width: "18%" }} />
