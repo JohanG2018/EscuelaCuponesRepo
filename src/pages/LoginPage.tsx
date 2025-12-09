@@ -12,9 +12,11 @@ export default function LoginPage() {
     const navigate = useNavigate();
 
     const validarLogin = () => {
-  if (usuario === "1234" && password === "123456") {
+  if (usuario === "admin" && password === "liris1234") {
     localStorage.setItem("logueado", "true");
-    navigate("/admin/cupon");
+    //navigate("/admin/cupon");
+    window.location.href = "/admin/cupon"; // error corregido para el inicio de sesión
+
   } else {
     toast.current?.show({
         severity: "error",

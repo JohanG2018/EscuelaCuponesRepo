@@ -24,7 +24,7 @@ export function validateForm(form: Cupon): validateResult {
   if (!Array.isArray(form.locales) || form.locales.length === 0) {
     falt.push("Locales (al menos uno)")
   }
- 
+
   return falt.length ? { ok: false, missing: falt } : { ok: true }
 }
 
@@ -73,7 +73,7 @@ export const mergeCombinaciones = (base: Combinacion[], nuevas: Combinacion[]): 
   return Array.from(map.values());
 };
 
-export async function fileToBase64(file: File): Promise<string> {
+/*export async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => {
@@ -83,7 +83,49 @@ export async function fileToBase64(file: File): Promise<string> {
     r.onerror = reject;
     r.readAsDataURL(file);
   });
+}*/
+
+export async function fileToBase64(
+  file: File,
+  maxWidth = 300,
+  quality = 50
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+
+    // 1) Leer archivo como DataURL
+    reader.onload = (e) => {
+      img.src = e.target?.result as string;
+    };
+
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+
+    // 2) Cuando la imagen cargue, comprimimos
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const scale = maxWidth / img.width;
+
+      // Redimensionar solo si supera el maxWidth
+      canvas.width = img.width > maxWidth ? maxWidth : img.width;
+      canvas.height =
+        img.width > maxWidth ? img.height * scale : img.height;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject("No canvas context");
+
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      // 3) Convertir a JPG comprimido y Base64
+      const base64 = canvas.toDataURL("image/jpeg", quality);
+
+      // 4) Retornar solo la parte Base64 (sin data:image/jpeg;base64,)
+      resolve(base64.split(",")[1]);
+    };
+  });
 }
+
 export function toDate(value: any): string {
   if (!value) return "";
   return new Date(value).toISOString();

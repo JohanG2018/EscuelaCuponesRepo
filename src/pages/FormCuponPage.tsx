@@ -108,6 +108,7 @@ const FormCuponPage: React.FC = () => {
   const submitLabel = isProduccion ? "Enviar a producción" : "Enviar a pruebas";
   const submitIcon = isProduccion ? "pi pi-cloud-upload" : "pi pi-send";
   const submitClass = isProduccion ? "bg-green-500 hover:bg-green-600" : "bg-green-500 hover:bg-green-600";
+  const esMecanica = formulario.tipoAplicacion === "Mecanica";
 
   // Sincroniza con el estado principal al cargar (edición)
   useEffect(() => {
@@ -309,6 +310,7 @@ const FormCuponPage: React.FC = () => {
     });
 
   const onAgregarSeleccionados = () => {
+    const excluidos = formulario.combinarCondiciones ? formulario.productosExcluidos : [];
     const nuevas: Combinacion[] = [
       ...buildRows(formulario.categorias, "G"),
       ...buildRows(formulario.subcategorias, "SG"),
@@ -646,12 +648,19 @@ const FormCuponPage: React.FC = () => {
               <div className="flex flex-col gap-2">
                 <label className="font-semibold">Tipo de Aplicación</label>
                 <div className="flex gap-4">
-                  <RadioButton inputId="general" name="tipoAplicacion" value="General" onChange={(e) => handleInputChange("tipoAplicacion", e.value)} checked={formulario.tipoAplicacion === "General"} />
+                  <RadioButton inputId="general" name="tipoAplicacion" value="General" onChange={(e) => handleInputChange("tipoAplicacion", e.value)} checked={formulario.tipoAplicacion === "General"} /> {/*Aqui es donde voy a validar que tipo de promocion es la que esta selecionadondo JCHID*/}
                   <label htmlFor="general">General</label>
                   <RadioButton inputId="mecanica" name="tipoAplicacion" value="Mecanica" onChange={(e) => handleInputChange("tipoAplicacion", e.value)} checked={formulario.tipoAplicacion === "Mecanica"} />
                   <label htmlFor="mecanica">Por mecánica</label>
                 </div>
+                {/* --- validacion de campo vacio de tipo Aplicacion JCHID --- */}
+                {formulario.tipoAplicacion === "" && (
+                  <small className="p-error">Debe seleccionar un tipo de aplicación.</small>
+                )}
+                {/* --- FIN validacion de campo vacio de tipo Aplicacion JCHID --- */}
               </div>
+
+
 
               <div className="flex flex-col gap-2">
                 <label htmlFor="valorMinimo" className="font-semibold">Valor minimo de compra</label>
@@ -689,117 +698,121 @@ const FormCuponPage: React.FC = () => {
                 </label>
               </div>
             </div>
-
-
           </section>
-          <section className="p-5">
-            <h2 className="text-xl font-semibold border-b-4 pb-2 mb-4">Productos y Categorías</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Categorías */}
-              <div className="flex flex-col gap-2">
-                <label htmlFor="categorias" className="font-semibold">Categorías</label>
-                <MultiSelect
-                  options={categorias}
-                  optionLabel="name"
-                  value={formulario.categorias}
-                  onChange={(e) => handleInputChange("categorias", e.value)}
-                  loading={loading}
-                  placeholder={categorias.length === 0 ? "Cargando las categorias..." : "Seleccione categorías"}
-                  filter
-                  disabled={esGeneral || categorias.length === 0}
-                />
-              </div>
-              {/* Subcategorías */}
-              <div className="flex flex-col gap-2">
-                <label htmlFor="subcategorias" className="font-semibold">Subcategorías</label>
-                <MultiSelect
-                  options={subcategorias}
-                  optionLabel="name"
-                  value={formulario.subcategorias}
-                  onChange={(e) => handleInputChange("subcategorias", e.value)}
-                  placeholder={categorias.length === 0 ? "Cargando subcategorias..." : "Seleccione subcategorías"}
-                  filter
-                  disabled={esGeneral || subcategorias.length === 0}
-                  loading={loading}
-                />
-              </div>
-              {/* Proveedores */}
-              <div className="flex flex-col gap-2">
-                <label htmlFor="proveedores" className="font-semibold">Proveedores</label>
-                <AutoComplete
-                  multiple
-                  field="name"
-                  value={formulario.proveedores}
-                  suggestions={filteredProveedores}
-                  completeMethod={buscarProveedores}
-                  onChange={(e) => handleInputChange("proveedores", e.value)}
-                  placeholder={proveedores.length === 0 ? "Cargando proovedores..." : "Escriba el proveedores"}
-                  disabled={esGeneral || proveedores.length == 0}
 
-                />
+          {/* Inicio de la sección Productos y Categorías con validacion JCHID */}
+          {esMecanica && (
+            <section className="p-5">
+              <h2 className="text-xl font-semibold border-b-4 pb-2 mb-4">Productos y Categorías</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Categorías */}
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="categorias" className="font-semibold">Categorías</label>
+                  <MultiSelect
+                    options={categorias}
+                    optionLabel="name"
+                    value={formulario.categorias}
+                    onChange={(e) => handleInputChange("categorias", e.value)}
+                    loading={loading}
+                    placeholder={categorias.length === 0 ? "Cargando las categorias..." : "Seleccione categorías"}
+                    filter
+                    disabled={esGeneral || categorias.length === 0}
+                  />
+                </div>
+                {/* Subcategorías */}
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="subcategorias" className="font-semibold">Subcategorías</label>
+                  <MultiSelect
+                    options={subcategorias}
+                    optionLabel="name"
+                    value={formulario.subcategorias}
+                    onChange={(e) => handleInputChange("subcategorias", e.value)}
+                    placeholder={categorias.length === 0 ? "Cargando subcategorias..." : "Seleccione subcategorías"}
+                    filter
+                    disabled={esGeneral || subcategorias.length === 0}
+                    loading={loading}
+                  />
+                </div>
+                {/* Proveedores */}
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="proveedores" className="font-semibold">Proveedores</label>
+                  <AutoComplete
+                    multiple
+                    field="name"
+                    value={formulario.proveedores}
+                    suggestions={filteredProveedores}
+                    completeMethod={buscarProveedores}
+                    onChange={(e) => handleInputChange("proveedores", e.value)}
+                    placeholder={proveedores.length === 0 ? "Cargando proovedores..." : "Escriba el proveedores"}
+                    disabled={esGeneral || proveedores.length == 0}
+
+                  />
+                </div>
+                {/* Productos */}
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="productos" className="font-semibold">Productos</label>
+                  <AutoComplete
+                    multiple
+                    field="nombre"
+                    value={formulario.productos}
+                    suggestions={filteredProductos}
+                    completeMethod={buscarProductos}
+                    onChange={(e) => handleInputChange("productos", e.value)}
+                    placeholder={productos.length === 0 ? "Cargando productos..." : "Escriba los productos"}
+                    disabled={esGeneral || productos.length == 0}
+                  />
+                </div>
               </div>
-              {/* Productos */}
-              <div className="flex flex-col gap-2">
-                <label htmlFor="productos" className="font-semibold">Productos</label>
+              {/* Productos Excluidos */}
+              <div className="mt-6 flex flex-col gap-2">
+                <label htmlFor="productosExcluidos" className="font-semibold">Productos Excluidos</label>
                 <AutoComplete
                   multiple
                   field="nombre"
-                  value={formulario.productos}
-                  suggestions={filteredProductos}
-                  completeMethod={buscarProductos}
-                  onChange={(e) => handleInputChange("productos", e.value)}
-                  placeholder={productos.length === 0 ? "Cargando productos..." : "Escriba los productos"}
-                  disabled={esGeneral || productos.length == 0}
+                  value={formulario.productosExcluidos}
+                  suggestions={filteredProductosExcluidos}
+                  completeMethod={buscarProductosExcluidos}
+                  onChange={(e) => handleInputChange("productosExcluidos", e.value)}
+                  placeholder={productos.length === 0 ? "Cargando productos excluidos" : "Escriba productos excluidos"}
+                  disabled={esGeneral || productos.length === 0 || !formulario.combinarCondiciones}
                 />
               </div>
-            </div>
-            {/* Productos Excluidos */}
-            <div className="mt-6 flex flex-col gap-2">
-              <label htmlFor="productosExcluidos" className="font-semibold">Productos Excluidos</label>
-              <AutoComplete
-                multiple
-                field="nombre"
-                value={formulario.productosExcluidos}
-                suggestions={filteredProductosExcluidos}
-                completeMethod={buscarProductosExcluidos}
-                onChange={(e) => handleInputChange("productosExcluidos", e.value)}
-                placeholder={productos.length === 0 ? "Cargando productos excluidos" : "Escriba productos excluidos"}
-                disabled={esGeneral || productos.length === 0}
-              />
-            </div>
 
-            {/* Tabla de combinaciones */}
-            <div className="pt-6">
-              <label className="font-semibold block mb-2">Tabla de Combinaciones</label>
-              <div className="flex justify-end mb-2">
-                <Button
-                  label="Agregar"
-                  icon="pi pi-plus"
-                  onClick={onAgregarSeleccionados}
-                  raised
-                  className="p-3 bg-green-500 hover:bg-green-600 text-white"
-                  disabled={esGeneral}
+              {/* Tabla de combinaciones */}
+              <div className="pt-6">
+                <label className="font-semibold block mb-2">Tabla de Combinaciones</label>
+                <div className="flex justify-end mb-2">
+                  <Button
+                    label="Agregar"
+                    icon="pi pi-plus"
+                    onClick={onAgregarSeleccionados}
+                    raised
+                    className="p-3 bg-green-500 hover:bg-green-600 text-white"
+                    disabled={esGeneral}
+                  />
+                </div>
+                <TableCombinacionesComponent
+                  combinaciones={combinaciones}
+                  setCombinaciones={(rowsOrUpdater) => {
+                    setCombinaciones((prev) => {
+                      const next =
+                        typeof rowsOrUpdater === "function"
+                          ? (rowsOrUpdater as unknown as (p: Combinacion[]) => Combinacion[])(prev)
+                          : rowsOrUpdater;
+
+                      // Mantén el formulario sincronizado con el array final, no con la función
+                      handleInputChange("combinaciones", next as any);
+                      return next;
+                    });
+                  }}
+                  onRowDelete={onRowDeleteFromSelectors}
                 />
+
               </div>
-              <TableCombinacionesComponent
-                combinaciones={combinaciones}
-                setCombinaciones={(rowsOrUpdater) => {
-                  setCombinaciones((prev) => {
-                    const next =
-                      typeof rowsOrUpdater === "function"
-                        ? (rowsOrUpdater as unknown as (p: Combinacion[]) => Combinacion[])(prev)
-                        : rowsOrUpdater;
+            </section>
+          )}
+          {/* Fin de la sección Productos y Categorías con validacion JCHID */}
 
-                    // Mantén el formulario sincronizado con el array final, no con la función
-                    handleInputChange("combinaciones", next as any);
-                    return next;
-                  });
-                }}
-                onRowDelete={onRowDeleteFromSelectors}
-              />
-
-            </div>
-          </section>
           <section className="p-5">
             <h2 className="text-xl font-semibold border-b-4 pb-1 mb-4 mt-10">Configuración Visual</h2>
             <div className="flex justify-end pb-3">
@@ -852,13 +865,13 @@ const FormCuponPage: React.FC = () => {
                     <label htmlFor={formato.id} className="ml-2">{formato.label}</label>
                   </div>
 
-                  {/* Mostrar checkbox SOLO si el formato es 2 o 4 */}
-                  {(formato.id === "formato2" || formato.id === "sinformato") && formulario.nombreLogo === formato.id && (
+                  {/* Mostrar checkbox SIEMPRE que el formato esté seleccionado */}
+                  {formulario.nombreLogo === formato.id && (
                     <div className="mt-3 flex items-center justify-center">
                       <Checkbox
                         inputId={`datosCliente-${formato.id}`}
                         checked={!!formulario.datosCliente}
-                        onChange={(e) => handleInputChange("datosCliente", e.checked)}
+                        onChange={(e) => handleInputChange("datosCliente", e.checked?? false )}
                       />
                       <label htmlFor={`datosCliente-${formato.id}`} className="ml-2">
                         Datos del cliente
@@ -868,15 +881,34 @@ const FormCuponPage: React.FC = () => {
                 </div>
               ))}
             </div>
+
             {/* Descripción del Ticket */}
             <div className="md:col-span-2 flex flex-col gap-2 pt-6">
-              <label className=" text-lg font-semibold" htmlFor="descripcionTicket">Información <span className="text-sm">(Máximo 50 caracteres)</span></label>
+              <label className=" text-lg font-semibold" htmlFor="descripcionTicket">Información <span className="text-sm">(Máximo 100 caracteres)</span></label>
               <InputTextarea
                 id="descripcionTicket"
                 value={formulario.descripcionTicket}
-                onChange={(e) => handleInputChange("descripcionTicket", e.target.value)}
+                onChange={(e) => {
+                  const valor = e.target.value;
+                  // Expresión Regular (Regex):
+                  // Permite: a-z, A-Z, 0-9, ñ, Ñ, vocales con tilde, diéresis, espacios, puntos y comas.
+                  const regex = /^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚüÜ .,\n¿?¡!:;"'()\-]*$/;
+
+                  if (regex.test(valor)) {
+                    // Si pasa la prueba, actualizamos el estado
+                    handleInputChange("descripcionTicket", valor);
+                  } else {
+                    // Si NO pasa (ej: emojis, @, #, $), mostramos la alerta y NO actualizamos el estado
+                    toast.current?.show({
+                      severity: "warn",
+                      summary: "Carácter no permitido",
+                      detail: "No se permiten emojis ni caracteres especiales.",
+                      life: 2000 // Dura 2 segundos para no ser molesto
+                    });
+                  }
+                }}
                 rows={3}
-                maxLength={50}
+                maxLength={100}
                 autoResize
                 placeholder="Ingrese el texto que aparecerá en el ticket"
               />
@@ -887,24 +919,46 @@ const FormCuponPage: React.FC = () => {
               <Upload
                 value={formulario.logo as any}
                 onChange={(f) => handleInputChange("logo", f as any)}
-                toastRef={toast}
+                toastRef={toast as React.RefObject<Toast>}
                 maxWidth={600}
                 maxSizeMB={5}
               />
             </div>
 
-            {/* Texto Legal */}
+            {/* Sección Texto Legal */}
             <div className="mt-6 flex flex-col gap-2 md:w-2/3">
-              <label htmlFor="textoLegal" className="text-lg font-semibold">Legales <span className="text-sm">(Máximo 30 caracteres)</span></label>
+              <label htmlFor="textoLegal" className="text-lg font-semibold">Legales <span className="text-sm">(Máximo 80 caracteres)</span></label>
               <InputTextarea
                 id="textoLegal"
                 value={formulario.textoLegal}
-                onChange={(e) => handleInputChange("textoLegal", e.target.value)}
+                onChange={(e) => {
+                  const valor = e.target.value;
+                  // 🛑 NUEVA EXPRESIÓN REGULAR: EXCLUYE explícitamente el salto de línea (\n)
+                  // La Regex original del otro campo permitía \n. Esta versión no lo permite.
+                  const regexSinSalto = /^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚüÜ .,¿?¡!:;"'()\-]*$/;
+
+                  if (regexSinSalto.test(valor) || valor === "") {
+                    // Si pasa la prueba o si el campo está vacío, actualizamos el estado
+                    handleInputChange("textoLegal", valor);
+                  } else {
+                    // Si NO pasa (ej: por salto de línea o caracter especial)
+                    toast.current?.show({
+                      severity: "warn",
+                      summary: "Carácter no permitido",
+                      detail: "No se permiten saltos de línea (Enter) ni otros caracteres especiales.",
+                      life: 2000
+                    });
+                  }
+                }}
                 rows={2}
                 autoResize
                 placeholder="Ej: Promoción válida hasta agotar stock. Máximo 1 cupón por persona."
-                maxLength={30}
+                maxLength={80}
+                className={formulario.textoLegal.trim() === "" ? "p-invalid" : ""}
               />
+              {formulario.textoLegal.trim() === "" && (
+                <small className="p-error">El texto legal no puede estar vacío o contener solo espacios.</small>
+              )}
             </div>
           </section>
         </div>

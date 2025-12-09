@@ -20,7 +20,7 @@ const Upload: React.FC<Props> = ({
   maxWidth = 600,
   maxSizeMB = 5,
   disabled,
-  label = "Cargar Logo (.bmp, máx 600px ancho)",
+  label = "Cargar Logo (.bmp, maximo tamaño 5MB)",
 }) => {
   // archivo seleccionado en esta sesión (no el URL previo)
   const [file, setFile] = useState<File | null>(null);
@@ -120,7 +120,7 @@ const Upload: React.FC<Props> = ({
         accept=".bmp,image/bmp"
         maxFileSize={maxSizeMB * 1024 * 1024}
         customUpload
-        chooseLabel="Cargar archivo"
+        chooseLabel="Elegir archivo"
         uploadLabel="Subir archivo"
         cancelLabel="Cancelar"
         uploadHandler={handleUpload}

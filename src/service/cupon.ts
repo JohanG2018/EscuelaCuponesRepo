@@ -45,6 +45,7 @@ function mapCupon(raw: any): Cupon {
     cantidadProductos: cab.cantidadProductos ?? 0,
     formatoLogo: cab.formatoLogo ?? "",
     datosCliente: cab.incluirDatosCliente,
+    criterio : cab.criterio ?? false, // jchidalgo agregado para evitar error de compilación
 
     // listas (si en el futuro el backend las envía)
     locales: normalizeLocalesFromCupon(raw.locales),
