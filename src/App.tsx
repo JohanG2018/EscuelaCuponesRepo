@@ -29,7 +29,7 @@ function App() {
         <Route path="/admin/cupon/form" element={Protegida(<FormCuponPage />)} />
 
         {/* Ruta pública */}
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/admin-cupon" element={<LoginPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
