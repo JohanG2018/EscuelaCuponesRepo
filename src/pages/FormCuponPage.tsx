@@ -13,6 +13,7 @@ import { RadioButton } from "primereact/radiobutton";
 import MultiSelect from "../components/MultiselectComponent";
 import TableCombinacionesComponent from "../components/TableCombinacionesComponent";
 import PreviewTicket from "../components/PreviewTicket";
+
 import {
   buildCuponXML,
   postCuponXML,
@@ -762,7 +763,7 @@ const FormCuponPage: React.FC = () => {
                     disabled={esGeneral || productos.length == 0}
                   />
                 </div>
-              </div>
+              </div> 
               {/* Productos Excluidos */}
               <div className="mt-6 flex flex-col gap-2">
                 <label htmlFor="productosExcluidos" className="font-semibold">Productos Excluidos</label>
